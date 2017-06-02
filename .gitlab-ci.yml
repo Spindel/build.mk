@@ -1,0 +1,11 @@
+image: registry.gitlab.com/modioab/base-image:fedora-26-build-master
+stages:
+    - test
+
+before_script:
+    - uname -a
+
+test:
+    stage: test
+    script:
+        - make -C test
