@@ -11,6 +11,9 @@ COMPILED_ARCHIVE = compiled.tar
 compiled_file = COMPILED
 COMPILE_COMMAND = touch $(compiled_file)
 
+IMAGE_ARCHIVE = image.tar
+IMAGE_REPO = example.com/fake
+IMAGE_TAG_PREFIX = test
 
 ### Include
 
@@ -28,6 +31,7 @@ test:
 	$(MAKE) test-clean-should-remove-cleanup-file; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-source-archive-should-contain-source-file; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-compiled-archive-should-contain-compiled-file; $(RECORD_TEST_STATUS) \
+	$(MAKE) test-image-should-be-runnable; $(RECORD_TEST_STATUS) \
 	$(RETURN_TEST_STATUS)
 
 
@@ -55,3 +59,12 @@ test-compiled-archive-should-contain-compiled-file:
 	$(Q)$(MAKE) clean && \
 	$(MAKE) $(COMPILED_ARCHIVE) && \
 	tar tf $(COMPILED_ARCHIVE) | grep ^archive/prefix/$(compiled_file)$$ >/dev/null
+
+.PHONY: test-image-should-be-runnable
+test-image-should-be-runnable:
+	@echo $@
+	$(Q)$(MAKE) clean && \
+	$(MAKE) $(IMAGE_ARCHIVE) && \
+	$(MAKE) load && \
+	docker run --rm $(IMAGE_LOCAL_TAG) && \
+	docker rmi $(IMAGE_LOCAL_TAG)

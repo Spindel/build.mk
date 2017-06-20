@@ -188,19 +188,19 @@ CI_COMMIT_SHA ?= $(shell git rev-parse HEAD)
 CI_PIPELINE_ID ?= no-pipeline
 
 # The unique id of runner being used
-HOST := $(shell uname -a)
+_host := $(shell uname -a)
 
 # Build timestamp
-DATE := $(shell date --iso=minutes)
+_date := $(shell date --iso=minutes)
 
 # URL
 CI_PROJECT_URL ?= http://localhost.localdomain/
 
 # Unique for this build
-LOCAL_TAG = $(IMAGE_REPO):$(IMAGE_TAG_PREFIX)-$(CI_PIPELINE_ID)
+IMAGE_LOCAL_TAG = $(IMAGE_REPO):$(IMAGE_TAG_PREFIX)-$(CI_PIPELINE_ID)
 
 # Final tag
-TAG = $(IMAGE_REPO):$(IMAGE_TAG_PREFIX)-$(CI_COMMIT_REF_NAME)
+IMAGE_TAG = $(IMAGE_REPO):$(IMAGE_TAG_PREFIX)-$(CI_COMMIT_REF_NAME)
 
 $(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE)
 	$(Q)docker build --pull --no-cache \
@@ -208,12 +208,12 @@ $(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE)
 	  --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
 	  --build-arg=COMMIT="$(CI_COMMIT_SHA)" \
 	  --build-arg=URL="$(CI_PROJECT_URL)" \
-	  --build-arg=DATE="$(DATE)" \
-	  --build-arg=HOST="$(HOST)" \
-	  --tag=$(LOCAL_TAG) \
+	  --build-arg=DATE="$(_date)" \
+	  --build-arg=HOST="$(_host)" \
+	  --tag=$(IMAGE_LOCAL_TAG) \
 	  .
-	$(Q)docker save $(LOCAL_TAG) > $@
-	$(Q)docker rmi $(LOCAL_TAG)
+	$(Q)docker save $(IMAGE_LOCAL_TAG) > $@
+	$(Q)docker rmi $(IMAGE_LOCAL_TAG)
 
 build save: $(IMAGE_ARCHIVE)
 
@@ -221,9 +221,9 @@ load:
 	$(Q)docker load < $(IMAGE_ARCHIVE)
 
 publish:
-	$(Q)docker tag $(LOCAL_TAG) $(TAG)
-	$(Q)docker rmi $(LOCAL_TAG)
-	$(Q)docker push $(TAG)
+	$(Q)docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG)
+	$(Q)docker rmi $(IMAGE_LOCAL_TAG)
+	$(Q)docker push $(IMAGE_TAG)
 
 endif
 
