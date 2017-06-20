@@ -80,6 +80,7 @@ $(SOURCE_ARCHIVE): $(GIT_HEAD_REF_FILE)
 	   -o "$(CURDIR)/$@" \
 	   --prefix="$(_archive_prefix)" \
 	   HEAD . && \
+	 git submodule sync && \
 	 git submodule update --init && \
 	 git submodule --quiet foreach 'echo $$path' | while read path; do \
 	   (cd "$$path" && \
