@@ -100,7 +100,7 @@ endif
 
 ## Use the variable $(NODE_MODULES) as a prerequisite to ensure node
 ## modules are installed for a make rule. Node modules will be
-## installed with yarn.
+## installed with yarn if it is available, otherwise with npm.
 ##
 ## Set the variable PACKAGE_JSON, if the package.json file is not in
 ## the top-level directory.
@@ -110,7 +110,17 @@ PACKAGE_JSON ?= package.json
 NODE_MODULES ?= $(dir $(PACKAGE_JSON))node_modules/.mark
 
 $(NODE_MODULES): $(PACKAGE_JSON)
-	$(Q)(cd $(dir $<) && yarn) && touch $@
+	$(Q)(cd $(dir $<) && \
+	if type -P yarn >/dev/null; then \
+	  yarn; \
+	elif type -P npm >/dev/null; then \
+	  npm install; \
+	else \
+	  echo >&2 "Neither yarn nor npm is available"; \
+	  exit 1; \
+	fi; \
+	) && touch $@
+
 
 
 ######################################################################
