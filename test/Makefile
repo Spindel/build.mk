@@ -13,7 +13,6 @@ COMPILE_COMMAND = touch $(compiled_file)
 
 IMAGE_ARCHIVE = image.tar
 IMAGE_REPO = example.com/fake
-IMAGE_TAG_PREFIX = test
 
 ### Include
 

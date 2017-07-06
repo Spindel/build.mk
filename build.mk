@@ -157,9 +157,9 @@ endif
 ## which will build a docker image, and written to IMAGE_ARCHIVE with
 ## docker save.
 ##
-## The IMAGE_REPO and IMAGE_TAG_PREFIX should be set to specify how
-## the image should be tagged. GitLab CI variables also affect the
-## tag.
+## The IMAGE_REPO variable and optionally the IMAGE_TAG_PREFIX
+## variable should be set to specify how the image should be tagged.
+## GitLab CI variables also affect the tag.
 ##
 ## Set IMAGE_DOCKERFILE to specify a non-default dockerfile path. The
 ## default is Dockerfile in the current directory.
@@ -206,11 +206,15 @@ _date := $(shell date --iso=minutes)
 # URL
 CI_PROJECT_URL ?= http://localhost.localdomain/
 
+ifneq ($(IMAGE_TAG_PREFIX),)
+_image_tag_prefix := $(patsubst %-,%,$(IMAGE_TAG_PREFIX))-
+endif
+
 # Unique for this build
-IMAGE_LOCAL_TAG = $(IMAGE_REPO):$(IMAGE_TAG_PREFIX)-$(CI_PIPELINE_ID)
+IMAGE_LOCAL_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_PIPELINE_ID)
 
 # Final tag
-IMAGE_TAG = $(IMAGE_REPO):$(IMAGE_TAG_PREFIX)-$(CI_COMMIT_REF_NAME)
+IMAGE_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_COMMIT_REF_NAME)
 
 $(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE)
 	$(Q)docker build --pull --no-cache \
