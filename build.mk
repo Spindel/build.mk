@@ -111,9 +111,9 @@ NODE_MODULES ?= $(dir $(PACKAGE_JSON))node_modules/.mark
 
 $(NODE_MODULES): $(PACKAGE_JSON)
 	$(Q)(cd $(dir $<) && \
-	if type -P yarn >/dev/null; then \
+	if command -v yarn >/dev/null; then \
 	  yarn; \
-	elif type -P npm >/dev/null; then \
+	elif command -v npm >/dev/null; then \
 	  npm install; \
 	else \
 	  echo >&2 "Neither yarn nor npm is available"; \
