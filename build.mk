@@ -201,7 +201,7 @@ CI_PIPELINE_ID ?= no-pipeline
 _host := $(shell uname -a)
 
 # Build timestamp
-_date := $(shell date --iso=minutes)
+_date := $(shell date +%FT%H:%M%z)
 
 # URL
 CI_PROJECT_URL ?= http://localhost.localdomain/
