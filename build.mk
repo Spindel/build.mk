@@ -179,12 +179,17 @@ endif
 ## The publish goal expects the $(IMAGE_ARCHIVE) to exist and will
 ## load it into the daemon. It will re-tag it to the final tag and
 ## push the image.
+##
+## The build-publish goal will completely bypass $(IMAGE_ARCHIVE) and
+## build and publish without hitting the filesystem.
 
-ifneq ($(IMAGE_ARCHIVE),)
 
-.PHONY: build save load publish
+ifneq ($(IMAGE_REPO),)
+
+.PHONY: build save load publish build-publish
 
 IMAGE_DOCKERFILE ?= Dockerfile
+IMAGE_ARCHIVE ?= dummy.tar
 
 CLEANUP_FILES += $(IMAGE_ARCHIVE)
 
@@ -217,6 +222,21 @@ IMAGE_LOCAL_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_PIPELINE_ID)
 
 # Final tag
 IMAGE_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_COMMIT_REF_NAME)
+
+build-publish:
+	$(Q)docker build --pull --no-cache \
+		--file=$< \
+		--build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
+		--build-arg=COMMIT="$(CI_COMMIT_SHA)" \
+		--build-arg=URL="$(CI_PROJECT_URL)" \
+		--build-arg=DATE="$(_date)" \
+		--build-arg=HOST="$(_host)" \
+		--tag=$(IMAGE_LOCAL_TAG) \
+		.
+	$(Q)docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG)
+	$(Q)docker rmi $(IMAGE_LOCAL_TAG)
+	$(Q)docker push $(IMAGE_TAG)
+
 
 $(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE)
 	$(Q)docker build --pull --no-cache \
