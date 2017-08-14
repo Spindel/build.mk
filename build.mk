@@ -173,10 +173,12 @@ endif
 ##
 ## The build and save goals both create $(IMAGE_ARCHIVE).
 ##
-## The load goal loads $(IMAGE_ARCHIVE) into the docker daemon.
+## The load goal loads $(IMAGE_ARCHIVE) into the docker daemon. The
+## target is used for local testing of containers.
 ##
-## The publish goal expects the image to be loaded into the daemon. It
-## will re-tag it to the final tag and push the image.
+## The publish goal expects the $(IMAGE_ARCHIVE) to exist and will
+## load it into the daemon. It will re-tag it to the final tag and
+## push the image.
 
 ifneq ($(IMAGE_ARCHIVE),)
 
@@ -235,6 +237,7 @@ load:
 	$(Q)docker load < $(IMAGE_ARCHIVE)
 
 publish:
+	$(Q)docker load < $(IMAGE_ARCHIVE)
 	$(Q)docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG)
 	$(Q)docker rmi $(IMAGE_LOCAL_TAG)
 	$(Q)docker push $(IMAGE_TAG)
