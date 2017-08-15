@@ -164,12 +164,8 @@ endif
 ## Set IMAGE_DOCKERFILE to specify a non-default dockerfile path. The
 ## default is Dockerfile in the current directory.
 ##
-## If the docker image uses any built file, these should be added as a
-## dependency for IMAGE_ARCHIVE. For example, you need the rule:
-##
-##   $(IMAGE_ARCHIVE): $(SOURCE_ARCHIVE)
-##
-## if the Dockerfile uses the SOURCE_ARCHIVE.
+## If the docker image uses any built file, these should be added to
+## the IMAGE_FILES variable.
 ##
 ## The build and save goals both create $(IMAGE_ARCHIVE).
 ##
@@ -223,31 +219,27 @@ IMAGE_LOCAL_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_PIPELINE_ID)
 # Final tag
 IMAGE_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_COMMIT_REF_NAME)
 
-build-publish:
-	$(Q)docker build --pull --no-cache \
-		--file=$< \
-		--build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
-		--build-arg=COMMIT="$(CI_COMMIT_SHA)" \
-		--build-arg=URL="$(CI_PROJECT_URL)" \
-		--build-arg=DATE="$(_date)" \
-		--build-arg=HOST="$(_host)" \
-		--tag=$(IMAGE_LOCAL_TAG) \
-		.
+define _cmd_docker_build =
+$(Q)docker build --pull --no-cache \
+  --file=$< \
+  --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
+  --build-arg=COMMIT="$(CI_COMMIT_SHA)" \
+  --build-arg=URL="$(CI_PROJECT_URL)" \
+  --build-arg=DATE="$(_date)" \
+  --build-arg=HOST="$(_host)" \
+  --tag=$(IMAGE_LOCAL_TAG) \
+  .
+endef
+
+build-publish: $(IMAGE_FILES)
+	$(call _cmd_docker_build)
 	$(Q)docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG)
 	$(Q)docker rmi $(IMAGE_LOCAL_TAG)
 	$(Q)docker push $(IMAGE_TAG)
 
 
-$(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE)
-	$(Q)docker build --pull --no-cache \
-	  --file=$< \
-	  --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
-	  --build-arg=COMMIT="$(CI_COMMIT_SHA)" \
-	  --build-arg=URL="$(CI_PROJECT_URL)" \
-	  --build-arg=DATE="$(_date)" \
-	  --build-arg=HOST="$(_host)" \
-	  --tag=$(IMAGE_LOCAL_TAG) \
-	  .
+$(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
+	$(call _cmd_docker_build)
 	$(Q)docker save $(IMAGE_LOCAL_TAG) > $@
 	$(Q)docker rmi $(IMAGE_LOCAL_TAG)
 
