@@ -231,7 +231,7 @@ $(Q)docker build --pull --no-cache \
   .
 endef
 
-build-publish: $(IMAGE_FILES)
+build-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_docker_build)
 	$(Q)docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG)
 	$(Q)docker rmi $(IMAGE_LOCAL_TAG)
