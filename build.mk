@@ -144,7 +144,7 @@ $(COMPILED_ARCHIVE): $(SOURCE_ARCHIVE)
 	trap "rm -rf $$tmpdir" EXIT && \
 	(tar -C $$tmpdir -xf $(SOURCE_ARCHIVE) && \
 	 (cd $$tmpdir/$(_archive_prefix) && $(COMPILE_COMMAND)) && \
-	 tar -C $$tmpdir $(_archive_prefix) -cf $(COMPILED_ARCHIVE))
+	 tar -C $$tmpdir -cf $(COMPILED_ARCHIVE) $(_archive_prefix))
 
 endif
 
