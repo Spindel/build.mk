@@ -34,7 +34,7 @@ endif
 
 .PHONY: clean
 clean:
-	$(Q)rm -f $(CLEANUP_FILES)
+	$(Q)rm -rf $(CLEANUP_FILES)
 
 
 ## Set the ARCHIVE_PREFIX variable to specify the path prefix used for
