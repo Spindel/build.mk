@@ -50,7 +50,10 @@ test-source-archive-should-contain-source-file:
 	@echo $@
 	$(Q)$(MAKE) clean && \
 	$(MAKE) $(SOURCE_ARCHIVE) && \
-	tar tf $(SOURCE_ARCHIVE) | grep ^archive/prefix/build.mk$$ >/dev/null
+	tar tf $(SOURCE_ARCHIVE) | grep ^archive/prefix/build.mk$$ >/dev/null && \
+	tar tf $(SOURCE_ARCHIVE) | grep ^archive/prefix/submodule/submodule-file$$ >/dev/null &&\
+	tar tf $(SOURCE_ARCHIVE) | grep ^archive/prefix/test/submodule/submodule-file$$ >/dev/null
+
 
 
 .PHONY: test-source-archive-should-be-limited-to-source-archive-path
