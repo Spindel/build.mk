@@ -52,10 +52,15 @@ _archive_prefix := $(patsubst %/,%,$(patsubst /%,%,$(ARCHIVE_PREFIX)))/
 ## which will create a git archive with that name for the head
 ## revision. The archive will also include submodules.
 ##
+## If SOURCE_ARCHIVE_PATH is specified, the source archive contents is
+## limited to that path.
+##
 ## The ARCHIVE_PREFIX variable will specify the prefix path for the
 ## archive.
 
 ifneq ($(SOURCE_ARCHIVE),)
+
+SOURCE_ARCHIVE_PATH ?= .
 
 CLEANUP_FILES += $(SOURCE_ARCHIVE)
 
@@ -79,16 +84,18 @@ $(SOURCE_ARCHIVE): $(GIT_HEAD_REF_FILE)
 	 git archive \
 	   -o "$(CURDIR)/$@" \
 	   --prefix="$(_archive_prefix)" \
-	   HEAD . && \
+	   HEAD $(SOURCE_ARCHIVE_PATH) && \
 	 git submodule sync && \
 	 git submodule update --init && \
 	 git submodule --quiet foreach 'echo $$path' | while read path; do \
-	   (cd "$$path" && \
-	    git archive \
-	      -o "$(CURDIR)/$$tmpdir/submodule.tar" \
-	      --prefix="$(_archive_prefix)$$path/" \
-	      HEAD . && \
-	    tar --concatenate -f "$(CURDIR)/$@" "$(CURDIR)/$$tmpdir/submodule.tar"); \
+	   if find $(SOURCE_ARCHIVE_PATH) -samefile $$path >/dev/null 2>&1; then \
+	     (cd "$$path" && \
+	      git archive \
+	        -o "$(CURDIR)/$$tmpdir/submodule.tar" \
+	        --prefix="$(_archive_prefix)$$path/" \
+	        HEAD . && \
+	      tar --concatenate -f "$(CURDIR)/$@" "$(CURDIR)/$$tmpdir/submodule.tar"); \
+	   fi \
 	 done)
 
 endif

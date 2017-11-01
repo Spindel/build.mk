@@ -29,6 +29,7 @@ test:
 	$(Q)$(MAKE) clean; \
 	$(MAKE) test-clean-should-remove-cleanup-file; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-source-archive-should-contain-source-file; $(RECORD_TEST_STATUS) \
+	$(MAKE) test-source-archive-should-be-limited-to-source-archive-path; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-compiled-archive-should-contain-compiled-file; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-image-should-be-runnable; $(RECORD_TEST_STATUS) \
 	$(RETURN_TEST_STATUS)
@@ -52,12 +53,18 @@ test-source-archive-should-contain-source-file:
 	tar tf $(SOURCE_ARCHIVE) | grep ^archive/prefix/build.mk$$ >/dev/null
 
 
+.PHONY: test-source-archive-should-be-limited-to-source-archive-path
+test-source-archive-should-be-limited-to-source-archive-path:
+	$(Q)$(MAKE) -C test-source-archive-path $@
+
+
 .PHONY: test-compiled-archive-should-contain-compiled-file
 test-compiled-archive-should-contain-compiled-file:
 	@echo $@
 	$(Q)$(MAKE) clean && \
 	$(MAKE) $(COMPILED_ARCHIVE) && \
 	tar tf $(COMPILED_ARCHIVE) | grep ^archive/prefix/$(compiled_file)$$ >/dev/null
+
 
 .PHONY: test-image-should-be-runnable
 test-image-should-be-runnable:
