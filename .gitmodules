@@ -1,8 +1,8 @@
 [submodule "submodule"]
 	path = submodule
-	url = git@gitlab.com:ModioAB/build.mk
+	url = .
 	branch = submodule-branch
 [submodule "test/submodule"]
 	path = test/submodule
-	url = git@gitlab.com:ModioAB/build.mk
+	url = .
 	branch = submodule-branch
