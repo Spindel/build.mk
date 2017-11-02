@@ -52,12 +52,18 @@ _archive_prefix := $(patsubst %/,%,$(patsubst /%,%,$(ARCHIVE_PREFIX)))/
 ## which will create a git archive with that name for the head
 ## revision. The archive will also include submodules.
 ##
+## The SOURCE_ARCHIVE_PATH variable can be used to specify what is to
+## be included in the source archive. The path is relative to the root
+## of the git working copy. The default includes everything.
+##
 ## The ARCHIVE_PREFIX variable will specify the prefix path for the
 ## archive.
 
 ifneq ($(SOURCE_ARCHIVE),)
 
 CLEANUP_FILES += $(SOURCE_ARCHIVE)
+
+SOURCE_ARCHIVE_PATH ?= .
 
 # The git ref file indicating the age of HEAD
 GIT_HEAD_REF := $(shell git rev-parse --symbolic-full-name HEAD)
@@ -79,16 +85,19 @@ $(SOURCE_ARCHIVE): $(GIT_HEAD_REF_FILE)
 	 git archive \
 	   -o "$(CURDIR)/$@" \
 	   --prefix="$(_archive_prefix)" \
-	   HEAD . && \
+	   HEAD $(SOURCE_ARCHIVE_PATH) && \
 	 git submodule sync && \
 	 git submodule update --init && \
 	 git submodule --quiet foreach 'echo $$path' | while read path; do \
-	   (cd "$$path" && \
-	    git archive \
-	      -o "$(CURDIR)/$$tmpdir/submodule.tar" \
-	      --prefix="$(_archive_prefix)$$path/" \
-	      HEAD . && \
-	    tar --concatenate -f "$(CURDIR)/$@" "$(CURDIR)/$$tmpdir/submodule.tar"); \
+	   match=$$(find $(SOURCE_ARCHIVE_PATH) -samefile $$path 2>/dev/null); \
+	   if [ -n "$$match" ]; then \
+	     (cd "$$path" && \
+	      git archive \
+	        -o "$(CURDIR)/$$tmpdir/submodule.tar" \
+	        --prefix="$(_archive_prefix)$$path/" \
+	        HEAD . && \
+	      tar --concatenate -f "$(CURDIR)/$@" "$(CURDIR)/$$tmpdir/submodule.tar"); \
+	   fi \
 	 done)
 
 endif

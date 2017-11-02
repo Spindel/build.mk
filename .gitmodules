@@ -1,0 +1,8 @@
+[submodule "submodule"]
+	path = submodule
+	url = .
+	branch = submodule-branch
+[submodule "test/submodule"]
+	path = test/submodule
+	url = .
+	branch = submodule-branch
