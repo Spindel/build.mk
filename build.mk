@@ -245,6 +245,7 @@ build-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(Q)docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG)
 	$(Q)docker rmi $(IMAGE_LOCAL_TAG)
 	$(Q)docker push $(IMAGE_TAG)
+	$(Q)docker rmi $(IMAGE_TAG)
 
 
 $(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
@@ -262,6 +263,7 @@ publish:
 	$(Q)docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG)
 	$(Q)docker rmi $(IMAGE_LOCAL_TAG)
 	$(Q)docker push $(IMAGE_TAG)
+	$(Q)docker rmi $(IMAGE_TAG)
 
 endif
 
