@@ -74,6 +74,6 @@ test-image-should-be-runnable:
 	@echo $@
 	$(Q)$(MAKE) clean && \
 	$(MAKE) $(IMAGE_ARCHIVE) && \
-	$(MAKE) load && \
+	docker load < $(IMAGE_ARCHIVE) && \
 	docker run --rm $(IMAGE_LOCAL_TAG) && \
 	docker rmi $(IMAGE_LOCAL_TAG)

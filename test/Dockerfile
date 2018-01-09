@@ -1,4 +1,4 @@
-FROM registry.gitlab.com/modioab/base-image:fedora-25-python-master
+FROM registry.gitlab.com/modioab/base-image:fedora-27-python-master
 
 ARG URL=unknown
 ARG COMMIT=unknown

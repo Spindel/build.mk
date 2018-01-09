@@ -228,42 +228,87 @@ IMAGE_LOCAL_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_PIPELINE_ID)
 # Final tag
 IMAGE_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_COMMIT_REF_NAME)
 
-define _cmd_docker_build =
-$(Q)docker build --pull --no-cache \
-  --file=$< \
-  --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
-  --build-arg=COMMIT="$(CI_COMMIT_SHA)" \
-  --build-arg=URL="$(CI_PROJECT_URL)" \
-  --build-arg=DATE="$(_date)" \
-  --build-arg=HOST="$(_host)" \
-  --tag=$(IMAGE_LOCAL_TAG) \
-  .
+define _cmd_image =
+$(Q)if command -v buildah >/dev/null && command -v kpod >/dev/null; then \
+  $(_cmd_image_buildah_$(1)); \
+elif command -v docker >/dev/null; then \
+  $(_cmd_image_docker_$(1)); \
+else \
+  echo >&2 "Neither buildah/kpod nor docker is available"; \
+  exit 1; \
+fi
+endef
+
+_buildah = buildah
+
+define _cmd_image_buildah_build =
+  $(_buildah) bud --pull-always \
+    --file=$< \
+    --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
+    --build-arg=COMMIT="$(CI_COMMIT_SHA)" \
+    --build-arg=URL="$(CI_PROJECT_URL)" \
+    --build-arg=DATE="$(_date)" \
+    --build-arg=HOST="$(_host)" \
+    --tag=$(IMAGE_LOCAL_TAG) \
+    .
+endef
+define _cmd_image_docker_build =
+  docker build --pull --no-cache \
+    --file=$< \
+    --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
+    --build-arg=COMMIT="$(CI_COMMIT_SHA)" \
+    --build-arg=URL="$(CI_PROJECT_URL)" \
+    --build-arg=DATE="$(_date)" \
+    --build-arg=HOST="$(_host)" \
+    --tag=$(IMAGE_LOCAL_TAG) \
+    .
+endef
+
+define _cmd_image_buildah_publish =
+  $(_buildah) push $(IMAGE_LOCAL_TAG) docker://$(IMAGE_TAG); \
+  $(_buildah) rmi $(IMAGE_LOCAL_TAG)
+endef
+define _cmd_image_docker_publish =
+  docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG); \
+  docker rmi $(IMAGE_LOCAL_TAG); \
+  docker push $(IMAGE_TAG); \
+  docker rmi $(IMAGE_TAG)
+endef
+
+define _cmd_image_buildah_save =
+  $(_buildah) push $(IMAGE_LOCAL_TAG) docker-archive:$(IMAGE_ARCHIVE):$(IMAGE_LOCAL_TAG); \
+  $(_buildah) rmi $(IMAGE_LOCAL_TAG)
+endef
+define _cmd_image_docker_save
+  docker save $(IMAGE_LOCAL_TAG) > $(IMAGE_ARCHIVE); \
+  docker rmi $(IMAGE_LOCAL_TAG)
+endef
+
+# kpod 0.1 cant't actually load docker-format image archives, but the
+# documentation indicates that it should.
+define _cmd_image_buildah_load =
+  kpod load < $(IMAGE_ARCHIVE)
+endef
+define _cmd_image_docker_load =
+  docker load < $(IMAGE_ARCHIVE)
 endef
 
 build-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
-	$(call _cmd_docker_build)
-	$(Q)docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG)
-	$(Q)docker rmi $(IMAGE_LOCAL_TAG)
-	$(Q)docker push $(IMAGE_TAG)
-	$(Q)docker rmi $(IMAGE_TAG)
-
+	$(call _cmd_image,build)
+	$(call _cmd_image,publish)
 
 $(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
-	$(call _cmd_docker_build)
-	$(Q)docker save $(IMAGE_LOCAL_TAG) > $@
-	$(Q)docker rmi $(IMAGE_LOCAL_TAG)
+	$(call _cmd_image,build)
+	$(call _cmd_image,save)
 
 build save: $(IMAGE_ARCHIVE)
 
 load:
-	$(Q)docker load < $(IMAGE_ARCHIVE)
+	$(call _cmd_image,load)
 
 publish:
-	$(Q)docker load < $(IMAGE_ARCHIVE)
-	$(Q)docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG)
-	$(Q)docker rmi $(IMAGE_LOCAL_TAG)
-	$(Q)docker push $(IMAGE_TAG)
-	$(Q)docker rmi $(IMAGE_TAG)
+	$(call _cmd_image,load)
+	$(call _cmd_image,publish)
 
 endif
 
