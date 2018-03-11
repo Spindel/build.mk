@@ -43,6 +43,12 @@ clean:
 # Remove leading and add one trailing slash
 _archive_prefix := $(patsubst %/,%,$(patsubst /%,%,$(ARCHIVE_PREFIX)))/
 
+# Check if we have a git binary. The _git variable should only be used
+# when _git is known to be non-empty. If git is required when it is
+# not available, an error should be raised.
+GIT ?= git
+_git = $(shell command -v $(GIT))
+
 
 ######################################################################
 ### Git source archive
@@ -65,10 +71,14 @@ CLEANUP_FILES += $(SOURCE_ARCHIVE)
 
 SOURCE_ARCHIVE_PATH ?= .
 
+ifeq ($(_git),)
+$(SOURCE_ARCHIVE):
+	$(error Git does not appear to be installed)
+else
 # The git ref file indicating the age of HEAD
-GIT_HEAD_REF := $(shell git rev-parse --symbolic-full-name HEAD)
-GIT_TOP_DIR := $(shell git rev-parse --show-toplevel)
-GIT_HEAD_REF_FILE := $(shell git rev-parse --git-path $(GIT_HEAD_REF))
+GIT_HEAD_REF := $(shell $(_git) rev-parse --symbolic-full-name HEAD)
+GIT_TOP_DIR := $(shell $(_git) rev-parse --show-toplevel)
+GIT_HEAD_REF_FILE := $(shell $(_git) rev-parse --git-path $(GIT_HEAD_REF))
 
 # Handle that older git versions output git-path results relative to
 # the git top dir instead of relative to cwd
@@ -82,17 +92,17 @@ $(SOURCE_ARCHIVE): $(GIT_HEAD_REF_FILE)
 	$(Q)tmpdir=$$(mktemp -d submodules.XXXXX) && \
 	trap "rm -rf $$tmpdir" EXIT && \
 	(cd "$(GIT_TOP_DIR)" && \
-	 git archive \
+	 $(_git) archive \
 	   -o "$(CURDIR)/$@" \
 	   --prefix="$(_archive_prefix)" \
 	   HEAD $(SOURCE_ARCHIVE_PATH) && \
-	 git submodule sync && \
-	 git submodule update --init && \
-	 git submodule --quiet foreach 'echo $$path' | while read path; do \
+	 $(_git) submodule sync && \
+	 $(_git) submodule update --init && \
+	 $(_git) submodule --quiet foreach 'echo $$path' | while read path; do \
 	   match=$$(find $(SOURCE_ARCHIVE_PATH) -samefile $$path 2>/dev/null); \
 	   if [ -n "$$match" ]; then \
 	     (cd "$$path" && \
-	      git archive \
+	      $(_git) archive \
 	        -o "$(CURDIR)/$$tmpdir/submodule.tar" \
 	        --prefix="$(_archive_prefix)$$path/" \
 	        HEAD . && \
@@ -100,6 +110,7 @@ $(SOURCE_ARCHIVE): $(GIT_HEAD_REF_FILE)
 	   fi \
 	 done)
 
+endif
 endif
 
 
@@ -198,8 +209,13 @@ IMAGE_ARCHIVE ?= dummy.tar
 
 CLEANUP_FILES += $(IMAGE_ARCHIVE)
 
+ifeq ($(_git),)
+build-publish $(IMAGE_ARCHIVE) build save publish:
+	$(error Git does not appear to be installed, images cannot be tagged)
+else
+
 # The branch or tag name for which project is built
-CI_COMMIT_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
+CI_COMMIT_REF_NAME ?= $(shell $(_git) rev-parse --abbrev-ref HEAD)
 CI_COMMIT_REF_NAME := $(subst /,_,$(CI_COMMIT_REF_NAME))
 CI_COMMIT_REF_NAME := $(subst \#,_,$(CI_COMMIT_REF_NAME))
 
@@ -284,15 +300,6 @@ define _cmd_image_docker_save
   docker rmi $(IMAGE_LOCAL_TAG)
 endef
 
-# kpod 0.1 cant't actually load docker-format image archives, but the
-# documentation indicates that it should.
-define _cmd_image_buildah_load =
-  kpod load < $(IMAGE_ARCHIVE)
-endef
-define _cmd_image_docker_load =
-  docker load < $(IMAGE_ARCHIVE)
-endef
-
 build-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,build)
 	$(call _cmd_image,publish)
@@ -303,12 +310,23 @@ $(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 
 build save: $(IMAGE_ARCHIVE)
 
-load:
-	$(call _cmd_image,load)
-
 publish:
 	$(call _cmd_image,load)
 	$(call _cmd_image,publish)
+
+endif # ifeq($(_git),)
+
+# kpod 0.1 cant't actually load docker-format image archives, but the
+# documentation indicates that it should.
+define _cmd_image_buildah_load =
+  kpod load < $(IMAGE_ARCHIVE)
+endef
+define _cmd_image_docker_load =
+  docker load < $(IMAGE_ARCHIVE)
+endef
+
+load:
+	$(call _cmd_image,load)
 
 endif
 
