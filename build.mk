@@ -323,3 +323,43 @@ endif
 
 RECORD_TEST_STATUS = let "_result=_result|$$?";
 RETURN_TEST_STATUS = ! let _result;
+
+
+######################################################################
+### Fedora root archive
+######################################################################
+
+## Set the FEDORA_ROOT_ARCHIVE variable to a file name to create a
+## rule which will build a tar archive of a small Fedora root file
+## system. The archive will be suitable for adding to a scratch
+## container image.
+##
+## The FEDORA_ROOT_PACKAGES variable should be set to a list of
+## packages to be installed in the file system.
+##
+## The file system is built using dnf install --installroot, so the
+## rule needs to be run with root privileges to work.
+
+ifneq ($(FEDORA_ROOT_ARCHIVE),)
+
+CLEANUP_FILES += $(FEDORA_ROOT_ARCHIVE)
+
+$(FEDORA_ROOT_ARCHIVE):
+	$(Q)tmpdir=$$(mktemp -d fedora_root.XXXXX) && \
+	trap "rm -rf $$tmpdir" EXIT && \
+	dnf install \
+	  --installroot $(CURDIR)/$$tmpdir \
+	  --releasever 27 \
+	  --disablerepo "*" \
+	  --enablerepo "fedora" \
+	  --enablerepo "updates" \
+	  $(FEDORA_ROOT_PACKAGES) \
+	  glibc-minimal-langpack \
+	  --setopt install_weak_deps=false \
+	  --assumeyes && \
+	rm -rf \
+	  $$tmpdir/var/cache \
+	  $$tmpdir/var/log/dnf* && \
+	tar -C $$tmpdir -cf $(CURDIR)/$@ .
+
+endif
