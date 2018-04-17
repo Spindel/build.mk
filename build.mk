@@ -34,7 +34,7 @@ endif
 
 .PHONY: clean
 clean:
-	$(Q)rm -rf $(CLEANUP_FILES)
+	$(Q)rm -rf -- $(CLEANUP_FILES)
 
 
 ## Set the ARCHIVE_PREFIX variable to specify the path prefix used for
@@ -375,7 +375,7 @@ $(FEDORA_ROOT_ARCHIVE):
 	  glibc-minimal-langpack \
 	  --setopt install_weak_deps=false \
 	  --assumeyes && \
-	rm -rf \
+	rm -rf -- \
 	  $$tmpdir/var/cache \
 	  $$tmpdir/var/log/dnf* && \
 	tar -C $$tmpdir -cf $(CURDIR)/$@ .
