@@ -40,6 +40,10 @@ clean:
 ## Set the ARCHIVE_PREFIX variable to specify the path prefix used for
 ## all created tar archives.
 
+# Set a default so that using COMPILED_ARCHIVE works correctly without
+# specifying an ARCHIVE_PREFIX
+ARCHIVE_PREFIX ?= ./
+
 # Remove leading and add one trailing slash
 _archive_prefix := $(patsubst %/,%,$(patsubst /%,%,$(ARCHIVE_PREFIX)))/
 
