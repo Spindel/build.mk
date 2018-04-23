@@ -110,8 +110,8 @@ $(SOURCE_ARCHIVE): $(GIT_HEAD_REF_FILE)
 	   fi \
 	 done)
 
-endif
-endif
+endif # ifeq ($(_git),)
+endif # ifneq ($(SOURCE_ARCHIVE),)
 
 
 ######################################################################
@@ -328,7 +328,7 @@ endef
 load:
 	$(call _cmd_image,load)
 
-endif
+endif # ifneq ($(IMAGE_REPO),)
 
 
 ######################################################################
