@@ -152,8 +152,8 @@ _log_cmd_source_archive = SOURCE $@
 $(SOURCE_ARCHIVE): $(GIT_HEAD_REF_FILE)
 	$(call _cmd,source_archive)
 
-endif
-endif
+endif # ifeq ($(_git),)
+endif # ifneq ($(SOURCE_ARCHIVE),)
 
 
 ######################################################################
@@ -382,7 +382,7 @@ _log_cmd_image_load = LOAD $(IMAGE_ARCHIVE)
 load:
 	$(call _cmd_image,load)
 
-endif
+endif # ifneq ($(IMAGE_REPO),)
 
 
 ######################################################################
