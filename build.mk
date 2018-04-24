@@ -28,13 +28,46 @@ Q = @
 endif
 endif
 
+# $(call _cmd,example) expands to the contents of _cmd_example
+# variable. It should contain a series of commands suitable for a make
+# recipe. Each command in the variable should be preceded with $(Q).
+#
+# If there is a _log_cmd_example variable, it will be expanded into a
+# printf-command that precedes the commands from the _cmd_example
+# variable. This printf will produce output even if the commands of
+# the recipe aren't echoed.
+#
+# The "define" command may be used to assign multiple-line values to
+# variables:
+#
+# define _cmd_example
+# $(Q)rot13 < $< > $@
+# endef
+# _log_cmd_example = ROT13 $@
+
+_tput = $(shell command -v tput)
+ifneq ($(_tput),)
+_log_before = $(shell $(_tput) setaf 14)
+_log_after = $(shell $(_tput) sgr0)
+endif
+
+define _cmd
+@$(if $(_log_cmd_$(1)), echo -n $(_log_before);printf '  %-9s %s\n' $(_log_cmd_$(1));echo -n $(_log_after);)
+$(_cmd_$(1))
+endef
+
 
 ## Add your built files to the CLEANUP_FILES variable to have them
 ## cleaned up by the clean goal.
 
+define _cmd_clean
+$(Q)rm -rf $(CLEANUP_FILES)
+endef
+_log_cmd_clean = CLEAN
+
 .PHONY: clean
 clean:
-	$(Q)rm -rf -- $(CLEANUP_FILES)
+	$(call _cmd,clean)
 
 
 ## Set the ARCHIVE_PREFIX variable to specify the path prefix used for
@@ -92,27 +125,32 @@ GIT_HEAD_REF_FILE := $(shell if [ -f $(GIT_HEAD_REF_FILE) ]; then \
                                echo $(GIT_TOP_DIR)/$(GIT_HEAD_REF_FILE); \
                              fi)
 
+define _cmd_source_archive
+$(Q)tmpdir=$$(mktemp -d submodules.XXXXX) && \
+trap "rm -rf $$tmpdir" EXIT && \
+(cd "$(GIT_TOP_DIR)" && \
+  $(_git) archive \
+    -o "$(CURDIR)/$@" \
+    --prefix="$(_archive_prefix)" \
+    HEAD $(SOURCE_ARCHIVE_PATH) && \
+  $(_git) submodule sync && \
+  $(_git) submodule update --init && \
+  $(_git) submodule --quiet foreach 'echo $$path' | while read path; do \
+    match=$$(find $(SOURCE_ARCHIVE_PATH) -samefile $$path 2>/dev/null); \
+    if [ -n "$$match" ]; then \
+      (cd "$$path" && \
+      $(_git) archive \
+	-o "$(CURDIR)/$$tmpdir/submodule.tar" \
+	--prefix="$(_archive_prefix)$$path/" \
+	HEAD . && \
+      tar --concatenate -f "$(CURDIR)/$@" "$(CURDIR)/$$tmpdir/submodule.tar"); \
+    fi \
+  done)
+endef
+_log_cmd_source_archive = SOURCE $@
+
 $(SOURCE_ARCHIVE): $(GIT_HEAD_REF_FILE)
-	$(Q)tmpdir=$$(mktemp -d submodules.XXXXX) && \
-	trap "rm -rf $$tmpdir" EXIT && \
-	(cd "$(GIT_TOP_DIR)" && \
-	 $(_git) archive \
-	   -o "$(CURDIR)/$@" \
-	   --prefix="$(_archive_prefix)" \
-	   HEAD $(SOURCE_ARCHIVE_PATH) && \
-	 $(_git) submodule sync && \
-	 $(_git) submodule update --init && \
-	 $(_git) submodule --quiet foreach 'echo $$path' | while read path; do \
-	   match=$$(find $(SOURCE_ARCHIVE_PATH) -samefile $$path 2>/dev/null); \
-	   if [ -n "$$match" ]; then \
-	     (cd "$$path" && \
-	      $(_git) archive \
-	        -o "$(CURDIR)/$$tmpdir/submodule.tar" \
-	        --prefix="$(_archive_prefix)$$path/" \
-	        HEAD . && \
-	      tar --concatenate -f "$(CURDIR)/$@" "$(CURDIR)/$$tmpdir/submodule.tar"); \
-	   fi \
-	 done)
+	$(call _cmd,source_archive)
 
 endif
 endif
@@ -163,12 +201,17 @@ ifneq ($(COMPILED_ARCHIVE),)
 
 CLEANUP_FILES += $(COMPILED_ARCHIVE)
 
+define _cmd_compile_archive
+$(Q)tmpdir=$$(mktemp -d compilation.XXXXX) && \
+trap "rm -rf $$tmpdir" EXIT && \
+(tar -C $$tmpdir -xf $(SOURCE_ARCHIVE) && \
+  (cd $$tmpdir/$(_archive_prefix) && $(COMPILE_COMMAND)) && \
+  tar -C $$tmpdir -cf $(COMPILED_ARCHIVE) $(_archive_prefix))
+endef
+_log_cmd_compile_archive = COMPILE $(COMPILED_ARCHIVE)
+
 $(COMPILED_ARCHIVE): $(SOURCE_ARCHIVE)
-	$(Q)tmpdir=$$(mktemp -d compilation.XXXXX) && \
-	trap "rm -rf $$tmpdir" EXIT && \
-	(tar -C $$tmpdir -xf $(SOURCE_ARCHIVE) && \
-	 (cd $$tmpdir/$(_archive_prefix) && $(COMPILE_COMMAND)) && \
-	 tar -C $$tmpdir -cf $(COMPILED_ARCHIVE) $(_archive_prefix))
+	$(call _cmd,compile_archive)
 
 endif
 
@@ -242,13 +285,16 @@ ifneq ($(IMAGE_TAG_PREFIX),)
 _image_tag_prefix := $(patsubst %-,%,$(IMAGE_TAG_PREFIX))-
 endif
 
+IMAGE_TAG_SUFFIX ?= $(CI_COMMIT_REF_NAME)
+
 # Unique for this build
 IMAGE_LOCAL_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_PIPELINE_ID)
 
 # Final tag
-IMAGE_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_COMMIT_REF_NAME)
+IMAGE_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
 
 define _cmd_image =
+@$(if $(_log_cmd_image_$(1)), echo -n $(_log_before);printf '  %-9s %s\n' $(_log_cmd_image_$(1));echo -n $(_log_after);)
 $(Q)if command -v buildah >/dev/null && command -v kpod >/dev/null; then \
   $(_cmd_image_buildah_$(1)); \
 elif command -v docker >/dev/null; then \
@@ -283,6 +329,7 @@ define _cmd_image_docker_build =
     --tag=$(IMAGE_LOCAL_TAG) \
     .
 endef
+_log_cmd_image_build = BUILD $(IMAGE_LOCAL_TAG)
 
 define _cmd_image_buildah_publish =
   $(_buildah) push $(IMAGE_LOCAL_TAG) docker://$(IMAGE_TAG); \
@@ -294,6 +341,7 @@ define _cmd_image_docker_publish =
   docker push $(IMAGE_TAG); \
   docker rmi $(IMAGE_TAG)
 endef
+_log_cmd_image_publish = PUBLISH $(IMAGE_TAG)
 
 define _cmd_image_buildah_save =
   $(_buildah) push $(IMAGE_LOCAL_TAG) docker-archive:$(IMAGE_ARCHIVE):$(IMAGE_LOCAL_TAG); \
@@ -303,6 +351,7 @@ define _cmd_image_docker_save
   docker save $(IMAGE_LOCAL_TAG) > $(IMAGE_ARCHIVE); \
   docker rmi $(IMAGE_LOCAL_TAG)
 endef
+_log_cmd_image_publish = SAVE $(IMAGE_ARCHIVE)
 
 build-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,build)
@@ -328,6 +377,7 @@ endef
 define _cmd_image_docker_load =
   docker load < $(IMAGE_ARCHIVE)
 endef
+_log_cmd_image_load = LOAD $(IMAGE_ARCHIVE)
 
 load:
 	$(call _cmd_image,load)
@@ -366,22 +416,27 @@ ifneq ($(FEDORA_ROOT_ARCHIVE),)
 
 CLEANUP_FILES += $(FEDORA_ROOT_ARCHIVE)
 
+define _cmd_fedora_root
+$(Q)tmpdir=$$(mktemp -d fedora_root.XXXXX) && \
+trap "rm -rf $$tmpdir" EXIT && \
+dnf install \
+  --installroot $(CURDIR)/$$tmpdir \
+  --releasever 27 \
+  --disablerepo "*" \
+  --enablerepo "fedora" \
+  --enablerepo "updates" \
+  $(FEDORA_ROOT_PACKAGES) \
+  glibc-minimal-langpack \
+  --setopt install_weak_deps=false \
+  --assumeyes && \
+rm -rf \
+  $$tmpdir/var/cache \
+  $$tmpdir/var/log/dnf* && \
+tar -C $$tmpdir -cf $(CURDIR)/$@ .
+endef
+_log_cmd_fedora_root = DNF $@
+
 $(FEDORA_ROOT_ARCHIVE):
-	$(Q)tmpdir=$$(mktemp -d fedora_root.XXXXX) && \
-	trap "rm -rf $$tmpdir" EXIT && \
-	dnf install \
-	  --installroot $(CURDIR)/$$tmpdir \
-	  --releasever 27 \
-	  --disablerepo "*" \
-	  --enablerepo "fedora" \
-	  --enablerepo "updates" \
-	  $(FEDORA_ROOT_PACKAGES) \
-	  glibc-minimal-langpack \
-	  --setopt install_weak_deps=false \
-	  --assumeyes && \
-	rm -rf -- \
-	  $$tmpdir/var/cache \
-	  $$tmpdir/var/log/dnf* && \
-	tar -C $$tmpdir -cf $(CURDIR)/$@ .
+	$(call _cmd,fedora_root)
 
 endif
