@@ -28,6 +28,11 @@ Q = @
 endif
 endif
 
+# Some environments, like CI, don't declare a TERM variable, thus we
+# guess.
+
+TERM ?= dumb
+
 # $(call _cmd,example) expands to the contents of _cmd_example
 # variable. It should contain a series of commands suitable for a make
 # recipe. Each command in the variable should be preceded with $(Q).
@@ -47,12 +52,15 @@ endif
 
 _tput = $(shell command -v tput)
 ifneq ($(_tput),)
-_log_before = $(shell $(_tput) setaf 14)
-_log_after = $(shell $(_tput) sgr0)
+_log_before = if test -t 1; then $(_tput) -T $(TERM) setaf 14; fi
+_log_after = if test -t 1; then $(_tput) -T $(TERM) sgr0; fi
+else
+_log_before = :
+_log_after = :
 endif
 
 define _cmd
-@$(if $(_log_cmd_$(1)), echo -n $(_log_before);printf '  %-9s %s\n' $(_log_cmd_$(1));echo -n $(_log_after);)
+@$(if $(_log_cmd_$(1)), $(_log_before);printf '  %-9s %s\n' $(_log_cmd_$(1));$(_log_after);)
 $(_cmd_$(1))
 endef
 
@@ -294,7 +302,7 @@ IMAGE_LOCAL_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_PIPELINE_ID)
 IMAGE_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
 
 define _cmd_image =
-@$(if $(_log_cmd_image_$(1)), echo -n $(_log_before);printf '  %-9s %s\n' $(_log_cmd_image_$(1));echo -n $(_log_after);)
+@$(if $(_log_cmd_image_$(1)), $(_log_before);printf '  %-9s %s\n' $(_log_cmd_image_$(1));$(_log_after);)
 $(Q)if command -v buildah >/dev/null && command -v podman >/dev/null; then \
   $(_cmd_image_buildah_$(1)); \
 elif command -v docker >/dev/null; then \
