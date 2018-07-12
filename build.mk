@@ -421,7 +421,7 @@ $(Q)tmpdir=$$(mktemp -d fedora_root.XXXXX) && \
 trap "rm -rf $$tmpdir" EXIT && \
 dnf install \
   --installroot $(CURDIR)/$$tmpdir \
-  --releasever 27 \
+  --releasever 28 \
   --disablerepo "*" \
   --enablerepo "fedora" \
   --enablerepo "updates" \
