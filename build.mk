@@ -295,12 +295,12 @@ IMAGE_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
 
 define _cmd_image =
 @$(if $(_log_cmd_image_$(1)), echo -n $(_log_before);printf '  %-9s %s\n' $(_log_cmd_image_$(1));echo -n $(_log_after);)
-$(Q)if command -v buildah >/dev/null && command -v kpod >/dev/null; then \
+$(Q)if command -v buildah >/dev/null && command -v podman >/dev/null; then \
   $(_cmd_image_buildah_$(1)); \
 elif command -v docker >/dev/null; then \
   $(_cmd_image_docker_$(1)); \
 else \
-  echo >&2 "Neither buildah/kpod nor docker is available"; \
+  echo >&2 "Neither buildah/podman nor docker is available"; \
   exit 1; \
 fi
 endef
@@ -369,10 +369,8 @@ publish:
 
 endif # ifeq($(_git),)
 
-# kpod 0.1 cant't actually load docker-format image archives, but the
-# documentation indicates that it should.
 define _cmd_image_buildah_load =
-  kpod load < $(IMAGE_ARCHIVE)
+  podman load < $(IMAGE_ARCHIVE)
 endef
 define _cmd_image_docker_load =
   docker load < $(IMAGE_ARCHIVE)
