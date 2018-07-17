@@ -1,3 +1,19 @@
+# build.mk --- Makefile include for building container images
+
+# Copyright (C) 2018 Modio AB
+
+# https://gitlab.com/ModioAB/build.mk/
+
+# Copying and distribution of this file, with or without modification,
+# are permitted in any medium without royalty provided the copyright
+# notice and this notice are preserved. This file is offered as-is,
+# without any warranty.
+
+
+######################################################################
+### Usage
+######################################################################
+
 ## By setting certain variables before including build.mk in your
 ## makefile you can set up some commonly used make rules for building
 ## container images.
