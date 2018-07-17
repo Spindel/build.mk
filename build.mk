@@ -1,6 +1,6 @@
 ## By setting certain variables before including build.mk in your
 ## makefile you can set up some commonly used make rules for building
-## docker images.
+## container images.
 
 ## Variables with uppercase names are used as the public interface
 ## for build.mk.
@@ -19,8 +19,8 @@
 default:
 
 
-# Set V=1 to echo the make recipes. Recipes are always echoed for CI
-# builds.
+## Set V=1 to echo the make recipes. Recipes are always echoed for CI
+## builds.
 
 ifeq ($(CI),)
 ifneq ($(V),1)
@@ -28,10 +28,19 @@ Q = @
 endif
 endif
 
-# Some environments, like CI, don't declare a TERM variable, thus we
-# guess.
 
+# In the rare case that stdout is a TTY while TERM is not set, provide a
+# fallback.
 TERM ?= dumb
+
+_tput = $(shell command -v tput)
+ifneq ($(_tput),)
+_log_before = if test -t 1; then $(_tput) -T $(TERM) setaf 14; fi
+_log_after = if test -t 1; then $(_tput) -T $(TERM) sgr0; fi
+else
+_log_before = :
+_log_after = :
+endif
 
 # $(call _cmd,example) expands to the contents of _cmd_example
 # variable. It should contain a series of commands suitable for a make
@@ -49,15 +58,6 @@ TERM ?= dumb
 # $(Q)rot13 < $< > $@
 # endef
 # _log_cmd_example = ROT13 $@
-
-_tput = $(shell command -v tput)
-ifneq ($(_tput),)
-_log_before = if test -t 1; then $(_tput) -T $(TERM) setaf 14; fi
-_log_after = if test -t 1; then $(_tput) -T $(TERM) sgr0; fi
-else
-_log_before = :
-_log_after = :
-endif
 
 define _cmd
 @$(if $(_log_cmd_$(1)), $(_log_before);printf '  %-9s %s\n' $(_log_cmd_$(1));$(_log_after);)
@@ -79,7 +79,7 @@ clean:
 
 
 ## Set the ARCHIVE_PREFIX variable to specify the path prefix used for
-## all created tar archives.
+## the contents of all created tar archives.
 
 # Set a default so that using COMPILED_ARCHIVE works correctly without
 # specifying an ARCHIVE_PREFIX
