@@ -388,6 +388,24 @@ _log_cmd_image_load = LOAD $(IMAGE_ARCHIVE)
 load:
 	$(call _cmd_image,load)
 
+# Run command, for the automated test
+define _cmd_image_buildah_run =
+  podman run --rm $(IMAGE_LOCAL_TAG)
+endef
+define _cmd_image_docker_run =
+  docker run --rm $(IMAGE_LOCAL_TAG)
+endef
+_log_cmd_image_run = RUN $(IMAGE_LOCAL_TAG)
+
+# Remove loaded image command, for the automated test
+define _cmd_image_buildah_rmi_local =
+  $(_buildah) rmi $(IMAGE_LOCAL_TAG)
+endef
+define _cmd_image_docker_rmi_local =
+  docker rmi $(IMAGE_LOCAL_TAG)
+endef
+_log_cmd_image_rmi_local = RMI $(IMAGE_LOCAL_TAG)
+
 endif # ifneq ($(IMAGE_REPO),)
 
 
