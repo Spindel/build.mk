@@ -45,6 +45,9 @@ endif
 endif
 
 
+# MAKEFILE_LIST needs to be checked before any includes are processed.
+_buildmk_path := $(lastword $(MAKEFILE_LIST))
+
 # In the rare case that stdout is a TTY while TERM is not set, provide a
 # fallback.
 TERM ?= dumb
@@ -109,6 +112,10 @@ _archive_prefix := $(patsubst %/,%,$(patsubst /%,%,$(ARCHIVE_PREFIX)))/
 # not available, an error should be raised.
 GIT ?= git
 _git = $(shell command -v $(GIT))
+
+# Check if we have a curl binary, same as for _git.
+CURL ?= curl
+_curl = $(shell command -v $(CURL))
 
 
 ######################################################################
@@ -485,3 +492,49 @@ $(FEDORA_ROOT_ARCHIVE):
 	$(call _cmd,fedora_root)
 
 endif
+
+
+######################################################################
+### Update build.mk from GitLab
+######################################################################
+
+## Run `make update-build.mk` to make a git commit where this file is
+## replaced with the version from master in the GitLab project.
+
+# Use the web interface, since git archive --remote against GitLab
+# does not appear to work.
+_buildmk_baseurl = https://gitlab.com/ModioAB/build.mk
+_buildmk_release_ref = master
+_buildmk_repo = $(_buildmk_baseurl).git
+
+define _cmd_update_buildmk
+$(Q)if ! $(_git) diff-index --quiet HEAD; then \
+  echo >&2 "The git working copy needs to be clean."; \
+else \
+  $(_git) ls-remote -q $(_buildmk_repo) $(_buildmk_release_ref) | \
+    (read buildmk_commit rest; \
+     buildmk_url=$(_buildmk_baseurl)/raw/$${buildmk_commit}/build.mk; \
+     $(_curl) -o $(_buildmk_path) $${buildmk_url}; \
+     if $(_git) diff-index --quiet HEAD; then \
+       echo >&2 "No changes to build.mk."; \
+     else \
+       $(_git) add $(_buildmk_path); \
+       printf \
+         "Update build.mk to %s\n\nThis version of build.mk was fetched from:\n%s" \
+         $${buildmk_commit} \
+         $${buildmk_url} | \
+       $(_git) commit -F -; \
+     fi); \
+fi
+endef
+_log_cmd_update_buildmk = UPDATE $(_buildmk_path)
+
+.PHONY: update-build.mk
+update-build.mk:
+ifeq ($(_git),)
+	$(error Git does not appear to be installed)
+else ifeq ($(_curl),)
+	$(error Curl does not appear to be installed)
+else
+	$(call _cmd,update_buildmk)
+endif # ifeq ($(_git),)
