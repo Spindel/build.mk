@@ -388,7 +388,7 @@ define _cmd_image_docker_save =
   docker save $(IMAGE_LOCAL_TAG) > $(IMAGE_ARCHIVE); \
   docker rmi $(IMAGE_LOCAL_TAG)
 endef
-_log_cmd_image_publish = SAVE $(IMAGE_ARCHIVE)
+_log_cmd_image_save = SAVE $(IMAGE_ARCHIVE)
 
 build-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,build)
