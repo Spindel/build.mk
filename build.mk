@@ -278,11 +278,15 @@ endif
 ## The publish goal expects the $(IMAGE_ARCHIVE) to exist and will
 ## load it into the container storage. It will re-tag it to the final
 ## tag and push the image.
-
+##
+## The login goal will login to the registry server of IMAGE_REPO. It
+## will use GitLab CI credentials from the environment if the CI
+## variable is set, otherwise credentials will be prompted for if
+## necessary.
 
 ifneq ($(IMAGE_REPO),)
 
-.PHONY: build save load publish build-publish
+.PHONY: build save load publish build-publish login
 
 IMAGE_DOCKERFILE ?= Dockerfile
 IMAGE_ARCHIVE ?= dummy.tar
@@ -412,6 +416,21 @@ _log_cmd_image_load = LOAD $(IMAGE_ARCHIVE)
 
 load:
 	$(call _cmd_image,load)
+
+ifneq ($(CI),)
+_registry_login_args = -u gitlab-ci-token -p "$$CI_BUILD_TOKEN"
+endif # ifneq ($(CI),)
+
+define _cmd_image_buildah_login =
+  podman login $(_registry_login_args) $(IMAGE_REPO)
+endef
+define _cmd_image_docker_login =
+  docker login $(_registry_login_args) $(IMAGE_REPO)
+endef
+_log_cmd_image_login = LOGIN $(IMAGE_REPO)
+
+login:
+	$(call _cmd_image,login)
 
 # Run command, for the automated test
 define _cmd_image_buildah_run =
