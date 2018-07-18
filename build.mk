@@ -73,12 +73,12 @@ endif
 # The "define" command may be used to assign multiple-line values to
 # variables:
 #
-# define _cmd_example
+# define _cmd_example =
 # $(Q)rot13 < $< > $@
 # endef
 # _log_cmd_example = ROT13 $@
 
-define _cmd
+define _cmd =
 @$(if $(_log_cmd_$(1)), $(_log_before);printf '  %-9s %s\n' $(_log_cmd_$(1));$(_log_after);)
 $(_cmd_$(1))
 endef
@@ -87,7 +87,7 @@ endef
 ## Add your built files to the CLEANUP_FILES variable to have them
 ## cleaned up by the clean goal.
 
-define _cmd_clean
+define _cmd_clean =
 $(Q)rm -rf $(CLEANUP_FILES)
 endef
 _log_cmd_clean = CLEAN
@@ -156,7 +156,7 @@ GIT_HEAD_REF_FILE := $(shell if [ -f $(GIT_HEAD_REF_FILE) ]; then \
                                echo $(GIT_TOP_DIR)/$(GIT_HEAD_REF_FILE); \
                              fi)
 
-define _cmd_source_archive
+define _cmd_source_archive =
 $(Q)tmpdir=$$(mktemp -d submodules.XXXXX) && \
 trap "rm -rf $$tmpdir" EXIT && \
 (cd "$(GIT_TOP_DIR)" && \
@@ -232,7 +232,7 @@ ifneq ($(COMPILED_ARCHIVE),)
 
 CLEANUP_FILES += $(COMPILED_ARCHIVE)
 
-define _cmd_compile_archive
+define _cmd_compile_archive =
 $(Q)tmpdir=$$(mktemp -d compilation.XXXXX) && \
 trap "rm -rf $$tmpdir" EXIT && \
 (tar -C $$tmpdir -xf $(SOURCE_ARCHIVE) && \
@@ -248,39 +248,45 @@ endif
 
 
 ######################################################################
-### Docker image
+### Container image
 ######################################################################
 
-## Set the IMAGE_ARCHIVE variable to a file name to create a rule
-## which will build a docker image, and written to IMAGE_ARCHIVE with
-## docker save.
+## Set the IMAGE_REPO variable to a container registry URL to create rules
+## which will build and push a container image.
 ##
 ## The IMAGE_REPO variable and optionally the IMAGE_TAG_PREFIX
-## variable should be set to specify how the image should be tagged.
-## GitLab CI variables also affect the tag.
+## variable specify how the image should be tagged. GitLab CI
+## variables also affect the tag.
+##
+## Set the IMAGE_ARCHIVE variable to create rules for building and
+## saving the container image to a tar archive.
 ##
 ## Set IMAGE_DOCKERFILE to specify a non-default dockerfile path. The
 ## default is Dockerfile in the current directory.
 ##
-## If the docker image uses any built file, these should be added to
-## the IMAGE_FILES variable.
-##
-## The build and save goals both create $(IMAGE_ARCHIVE).
-##
-## The load goal loads $(IMAGE_ARCHIVE) into the docker daemon. The
-## target is used for local testing of containers.
-##
-## The publish goal expects the $(IMAGE_ARCHIVE) to exist and will
-## load it into the daemon. It will re-tag it to the final tag and
-## push the image.
+## If the container image uses any built file, these should be added
+## to the IMAGE_FILES variable.
 ##
 ## The build-publish goal will completely bypass $(IMAGE_ARCHIVE) and
 ## build and publish without hitting the filesystem.
-
+##
+## The build and save goals both create $(IMAGE_ARCHIVE).
+##
+## The load goal loads $(IMAGE_ARCHIVE) into the container storage.
+## This is used for local testing of containers.
+##
+## The publish goal expects the $(IMAGE_ARCHIVE) to exist and will
+## load it into the container storage. It will re-tag it to the final
+## tag and push the image.
+##
+## The login goal will login to the registry server of IMAGE_REPO. It
+## will use GitLab CI credentials from the environment if the CI
+## variable is set, otherwise credentials will be prompted for if
+## necessary.
 
 ifneq ($(IMAGE_REPO),)
 
-.PHONY: build save load publish build-publish
+.PHONY: build save load publish build-publish login
 
 IMAGE_DOCKERFILE ?= Dockerfile
 IMAGE_ARCHIVE ?= dummy.tar
@@ -378,11 +384,11 @@ define _cmd_image_buildah_save =
   $(_buildah) push $(IMAGE_LOCAL_TAG) docker-archive:$(IMAGE_ARCHIVE):$(IMAGE_LOCAL_TAG); \
   $(_buildah) rmi $(IMAGE_LOCAL_TAG)
 endef
-define _cmd_image_docker_save
+define _cmd_image_docker_save =
   docker save $(IMAGE_LOCAL_TAG) > $(IMAGE_ARCHIVE); \
   docker rmi $(IMAGE_LOCAL_TAG)
 endef
-_log_cmd_image_publish = SAVE $(IMAGE_ARCHIVE)
+_log_cmd_image_save = SAVE $(IMAGE_ARCHIVE)
 
 build-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,build)
@@ -410,6 +416,21 @@ _log_cmd_image_load = LOAD $(IMAGE_ARCHIVE)
 
 load:
 	$(call _cmd_image,load)
+
+ifneq ($(CI),)
+_registry_login_args = -u gitlab-ci-token -p "$$CI_BUILD_TOKEN"
+endif # ifneq ($(CI),)
+
+define _cmd_image_buildah_login =
+  podman login $(_registry_login_args) $(IMAGE_REPO)
+endef
+define _cmd_image_docker_login =
+  docker login $(_registry_login_args) $(IMAGE_REPO)
+endef
+_log_cmd_image_login = LOGIN $(IMAGE_REPO)
+
+login:
+	$(call _cmd_image,login)
 
 # Run command, for the automated test
 define _cmd_image_buildah_run =
@@ -468,7 +489,7 @@ CLEANUP_FILES += $(FEDORA_ROOT_ARCHIVE)
 
 FEDORA_ROOT_RELEASE ?= 28
 
-define _cmd_fedora_root
+define _cmd_fedora_root =
 $(Q)tmpdir=$$(mktemp -d fedora_root.XXXXX) && \
 trap "rm -rf $$tmpdir" EXIT && \
 dnf install \
@@ -507,7 +528,7 @@ _buildmk_baseurl = https://gitlab.com/ModioAB/build.mk
 _buildmk_release_ref = master
 _buildmk_repo = $(_buildmk_baseurl).git
 
-define _cmd_update_buildmk
+define _cmd_update_buildmk =
 $(Q)if ! $(_git) diff-index --quiet HEAD; then \
   echo >&2 "The git working copy needs to be clean."; \
 else \

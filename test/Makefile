@@ -30,7 +30,7 @@ compiled_file = COMPILED
 COMPILE_COMMAND = touch $(compiled_file)
 
 IMAGE_ARCHIVE = image.tar
-IMAGE_REPO = example.com/fake
+IMAGE_REPO = registry.gitlab.com/modioab/build.mk/test-container
 
 ### Include
 
@@ -50,6 +50,7 @@ test:
 	$(MAKE) test-source-archive-should-be-limited-to-source-archive-path; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-compiled-archive-should-contain-compiled-file; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-image-should-be-runnable; $(RECORD_TEST_STATUS) \
+	$(MAKE) test-image-should-be-publishable; $(RECORD_TEST_STATUS) \
 	$(RETURN_TEST_STATUS)
 
 
@@ -95,3 +96,17 @@ test-image-should-be-runnable:
 	$(MAKE) load
 	$(call _cmd_image,run)
 	$(call _cmd_image,rmi_local)
+
+
+# Only run this test in CI, and where we expect to have permissions to
+# publish the image
+
+.PHONY: test-image-should-be-publishable
+test-image-should-be-publishable:
+	@echo $@
+ifeq ($(CI_PROJECT_PATH),ModioAB/build.mk)
+	$(Q)$(MAKE) clean && \
+	$(MAKE) build-publish
+else
+	@echo Skipped.
+endif # ifeq ($(CI_PROJECT_PATH),ModioAB/build.mk)
