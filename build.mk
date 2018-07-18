@@ -248,34 +248,36 @@ endif
 
 
 ######################################################################
-### Docker image
+### Container image
 ######################################################################
 
-## Set the IMAGE_ARCHIVE variable to a file name to create a rule
-## which will build a docker image, and written to IMAGE_ARCHIVE with
-## docker save.
+## Set the IMAGE_REPO variable to a container registry URL to create rules
+## which will build and push a container image.
 ##
 ## The IMAGE_REPO variable and optionally the IMAGE_TAG_PREFIX
-## variable should be set to specify how the image should be tagged.
-## GitLab CI variables also affect the tag.
+## variable specify how the image should be tagged. GitLab CI
+## variables also affect the tag.
+##
+## Set the IMAGE_ARCHIVE variable to create rules for building and
+## saving the container image to a tar archive.
 ##
 ## Set IMAGE_DOCKERFILE to specify a non-default dockerfile path. The
 ## default is Dockerfile in the current directory.
 ##
-## If the docker image uses any built file, these should be added to
-## the IMAGE_FILES variable.
-##
-## The build and save goals both create $(IMAGE_ARCHIVE).
-##
-## The load goal loads $(IMAGE_ARCHIVE) into the docker daemon. The
-## target is used for local testing of containers.
-##
-## The publish goal expects the $(IMAGE_ARCHIVE) to exist and will
-## load it into the daemon. It will re-tag it to the final tag and
-## push the image.
+## If the container image uses any built file, these should be added
+## to the IMAGE_FILES variable.
 ##
 ## The build-publish goal will completely bypass $(IMAGE_ARCHIVE) and
 ## build and publish without hitting the filesystem.
+##
+## The build and save goals both create $(IMAGE_ARCHIVE).
+##
+## The load goal loads $(IMAGE_ARCHIVE) into the container storage.
+## This is used for local testing of containers.
+##
+## The publish goal expects the $(IMAGE_ARCHIVE) to exist and will
+## load it into the container storage. It will re-tag it to the final
+## tag and push the image.
 
 
 ifneq ($(IMAGE_REPO),)
