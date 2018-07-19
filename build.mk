@@ -505,7 +505,8 @@ dnf install \
 rm -rf \
   $$tmpdir/var/cache \
   $$tmpdir/var/log/dnf* && \
-tar -C $$tmpdir -cf $(CURDIR)/$@ .
+tar -C $$tmpdir -cf $(CURDIR)/$@ . && \
+rm -rf -- $$tmpdir
 endef
 _log_cmd_fedora_root = DNF $@
 
