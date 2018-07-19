@@ -50,6 +50,13 @@ test:
 	$(MAKE) test-source-archive-should-be-limited-to-source-archive-path; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-compiled-archive-should-contain-compiled-file; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-image-should-be-runnable; $(RECORD_TEST_STATUS) \
+	$(RETURN_TEST_STATUS)
+
+
+.PHONY: test-publish
+test-publish:
+	@echo Running test cases
+	$(Q)$(MAKE) clean; \
 	$(MAKE) test-image-should-be-publishable; $(RECORD_TEST_STATUS) \
 	$(RETURN_TEST_STATUS)
 
@@ -98,15 +105,17 @@ test-image-should-be-runnable:
 	$(call _cmd_image,rmi_local)
 
 
-# Only run this test in CI, and where we expect to have permissions to
-# publish the image
+# If running this test in CI, only run where we expect to have
+# permissions to publish the image.
 
 .PHONY: test-image-should-be-publishable
 test-image-should-be-publishable:
 	@echo $@
-ifeq ($(CI_PROJECT_PATH),ModioAB/build.mk)
-	$(Q)$(MAKE) clean && \
-	$(MAKE) build-publish
+	$(Q)$(MAKE) clean
+ifeq ($(CI_REGISTRY),)
+	$(Q)$(MAKE) build-publish
+else ifeq ($(CI_REGISTRY),$(IMAGE_REGISTRY))
+	$(Q)$(MAKE) build-publish
 else
 	@echo Skipped.
-endif # ifeq ($(CI_PROJECT_PATH),ModioAB/build.mk)
+endif # ifeq ($(CI_REGISTRY),)

@@ -330,6 +330,8 @@ IMAGE_LOCAL_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_PIPELINE_ID)
 # Final tag
 IMAGE_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
 
+IMAGE_REGISTRY = $(firstword $(subst /, ,$(IMAGE_REPO)))
+
 define _cmd_image =
 @$(if $(_log_cmd_image_$(1)), $(_log_before);printf '  %-9s %s\n' $(_log_cmd_image_$(1));$(_log_after);)
 $(Q)if command -v buildah >/dev/null && command -v podman >/dev/null; then \
@@ -422,12 +424,12 @@ _registry_login_args = -u gitlab-ci-token -p "$$CI_BUILD_TOKEN"
 endif # ifneq ($(CI),)
 
 define _cmd_image_buildah_login =
-  podman login $(_registry_login_args) $(IMAGE_REPO)
+  podman login $(_registry_login_args) $(IMAGE_REGISTRY)
 endef
 define _cmd_image_docker_login =
-  docker login $(_registry_login_args) $(IMAGE_REPO)
+  docker login $(_registry_login_args) $(IMAGE_REGISTRY)
 endef
-_log_cmd_image_login = LOGIN $(IMAGE_REPO)
+_log_cmd_image_login = LOGIN $(IMAGE_REGISTRY)
 
 login:
 	$(call _cmd_image,login)
