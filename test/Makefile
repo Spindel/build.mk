@@ -113,6 +113,7 @@ test-registry-should-be-correctly-set:
 	$(Q)[ "$$($(MAKE) echo_repo CI_REGISTRY=)" == registry.gitlab.com/$(repo_path) ]
 	$(Q)[ "$$($(MAKE) echo_repo CI_REGISTRY=foo)" == foo/$(repo_path) ]
 	$(Q)[ "$$($(MAKE) echo_repo CI_REGISTRY=foo IMAGE_REGISTRY=bar)" == bar/$(repo_path) ]
+	$(Q)[ "$$($(MAKE) echo_repo CI_REGISTRY= IMAGE_REPO=/$(repo_path))" == localhost/$(repo_path) ]
 
 
 .PHONY: test-image-should-be-runnable

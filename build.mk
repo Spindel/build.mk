@@ -336,7 +336,10 @@ IMAGE_LOCAL_TAG = $(_image_repo):$(_image_tag_prefix)$(CI_PIPELINE_ID)
 # Final tag
 IMAGE_TAG = $(_image_repo):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
 
-_image_repo_registry = $(firstword $(subst /, ,$(IMAGE_REPO)))
+# Handle IMAGE_REPO set to $(CI_REGISTRY)/... when CI_REGISTRY is unset
+_image_repo_fixup = $(patsubst /%,localhost/%,$(IMAGE_REPO))
+
+_image_repo_registry = $(firstword $(subst /, ,$(_image_repo_fixup)))
 
 ifeq ($(IMAGE_REGISTRY),)
 ifneq ($(CI_REGISTRY),)
@@ -346,7 +349,7 @@ IMAGE_REGISTRY = $(_image_repo_registry)
 endif # ifneq ($(CI_REGISTRY),)
 endif # ifeq ($(IMAGE_REGISTRY),)
 
-_image_repo = $(patsubst $(_image_repo_registry)/%,$(IMAGE_REGISTRY)/%,$(IMAGE_REPO))
+_image_repo = $(patsubst $(_image_repo_registry)/%,$(IMAGE_REGISTRY)/%,$(_image_repo_fixup))
 
 define _cmd_image =
 @$(if $(_log_cmd_image_$(1)), $(_log_before);printf '  %-9s %s\n' $(_log_cmd_image_$(1));$(_log_after);)
