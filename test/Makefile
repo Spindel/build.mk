@@ -30,7 +30,8 @@ compiled_file = COMPILED
 COMPILE_COMMAND = touch $(compiled_file)
 
 IMAGE_ARCHIVE = image.tar
-IMAGE_REPO = registry.gitlab.com/modioab/build.mk/test-container
+repo_path = modioab/build.mk/test-container
+IMAGE_REPO = registry.gitlab.com/$(repo_path)
 
 ### Include
 
@@ -41,6 +42,8 @@ include ../build.mk
 
 .DEFAULT_GOAL = test
 
+MAKE += --no-print-directory
+
 .PHONY: test
 test:
 	@echo Running test cases
@@ -49,7 +52,9 @@ test:
 	$(MAKE) test-source-archive-should-contain-source-file; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-source-archive-should-be-limited-to-source-archive-path; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-compiled-archive-should-contain-compiled-file; $(RECORD_TEST_STATUS) \
+	$(MAKE) test-registry-should-be-correctly-set; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-image-should-be-runnable; $(RECORD_TEST_STATUS) \
+	$(MAKE) clean; \
 	$(RETURN_TEST_STATUS)
 
 
@@ -95,6 +100,21 @@ test-compiled-archive-should-contain-compiled-file:
 	tar tf $(COMPILED_ARCHIVE) | grep ^archive/prefix/$(compiled_file)$$ >/dev/null
 
 
+.PHONY: test-registry-should-be-correctly-set echo_registry echo_repo
+echo_registry:
+	@echo "$(IMAGE_REGISTRY)"
+echo_repo:
+	@echo "$(_image_repo)"
+test-registry-should-be-correctly-set:
+	@echo $@
+	$(Q)[ "$$($(MAKE) echo_registry CI_REGISTRY=)" == registry.gitlab.com ]
+	$(Q)[ "$$($(MAKE) echo_registry CI_REGISTRY=foo)" == foo ]
+	$(Q)[ "$$($(MAKE) echo_registry CI_REGISTRY=foo IMAGE_REGISTRY=bar)" == bar ]
+	$(Q)[ "$$($(MAKE) echo_repo CI_REGISTRY=)" == registry.gitlab.com/$(repo_path) ]
+	$(Q)[ "$$($(MAKE) echo_repo CI_REGISTRY=foo)" == foo/$(repo_path) ]
+	$(Q)[ "$$($(MAKE) echo_repo CI_REGISTRY=foo IMAGE_REGISTRY=bar)" == bar/$(repo_path) ]
+
+
 .PHONY: test-image-should-be-runnable
 test-image-should-be-runnable:
 	@echo $@
@@ -105,17 +125,8 @@ test-image-should-be-runnable:
 	$(call _cmd_image,rmi_local)
 
 
-# If running this test in CI, only run where we expect to have
-# permissions to publish the image.
-
 .PHONY: test-image-should-be-publishable
 test-image-should-be-publishable:
 	@echo $@
 	$(Q)$(MAKE) clean
-ifeq ($(CI_REGISTRY),)
 	$(Q)$(MAKE) build-publish
-else ifeq ($(CI_REGISTRY),$(IMAGE_REGISTRY))
-	$(Q)$(MAKE) build-publish
-else
-	@echo Skipped.
-endif # ifeq ($(CI_REGISTRY),)
