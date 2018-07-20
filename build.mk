@@ -88,7 +88,7 @@ endef
 ## cleaned up by the clean goal.
 
 define _cmd_clean =
-$(Q)rm -rf $(CLEANUP_FILES)
+$(Q)rm -rf -- $(CLEANUP_FILES)
 endef
 _log_cmd_clean = CLEAN
 
@@ -157,8 +157,9 @@ GIT_HEAD_REF_FILE := $(shell if [ -f $(GIT_HEAD_REF_FILE) ]; then \
                              fi)
 
 define _cmd_source_archive =
-$(Q)tmpdir=$$(mktemp -d submodules.XXXXX) && \
-trap "rm -rf $$tmpdir" EXIT && \
+$(Q)set -u && \
+tmpdir=$$(pwd)/$$(mktemp -d submodules.XXXXX) && \
+trap "rm -rf -- \"$$tmpdir\"" EXIT INT TERM && \
 (cd "$(GIT_TOP_DIR)" && \
   $(_git) archive \
     -o "$(CURDIR)/$@" \
@@ -171,12 +172,13 @@ trap "rm -rf $$tmpdir" EXIT && \
     if [ -n "$$match" ]; then \
       (cd "$$path" && \
       $(_git) archive \
-	-o "$(CURDIR)/$$tmpdir/submodule.tar" \
+	-o "$$tmpdir/submodule.tar" \
 	--prefix="$(_archive_prefix)$$path/" \
 	HEAD . && \
-      tar --concatenate -f "$(CURDIR)/$@" "$(CURDIR)/$$tmpdir/submodule.tar"); \
+      tar --concatenate -f "$(CURDIR)/$@" "$$tmpdir/submodule.tar"); \
     fi \
-  done)
+  done) && \
+rm -rf -- "$$tmpdir"
 endef
 _log_cmd_source_archive = SOURCE $@
 
@@ -233,11 +235,13 @@ ifneq ($(COMPILED_ARCHIVE),)
 CLEANUP_FILES += $(COMPILED_ARCHIVE)
 
 define _cmd_compile_archive =
-$(Q)tmpdir=$$(mktemp -d compilation.XXXXX) && \
-trap "rm -rf $$tmpdir" EXIT && \
-(tar -C $$tmpdir -xf $(SOURCE_ARCHIVE) && \
-  (cd $$tmpdir/$(_archive_prefix) && $(COMPILE_COMMAND)) && \
-  tar -C $$tmpdir -cf $(COMPILED_ARCHIVE) $(_archive_prefix))
+$(Q)set -u && \
+tmpdir=$$(pwd)/$$(mktemp -d compilation.XXXXX) && \
+trap "rm -rf -- \"$$tmpdir\"" EXIT INT TERM && \
+(tar -C "$$tmpdir" -xf $(SOURCE_ARCHIVE) && \
+  (cd "$$tmpdir"/$(_archive_prefix) && $(COMPILE_COMMAND)) && \
+  tar -C "$$tmpdir" -cf $(COMPILED_ARCHIVE) $(_archive_prefix))
+rm -rf -- "$$tmpdir"
 endef
 _log_cmd_compile_archive = COMPILE $(COMPILED_ARCHIVE)
 
@@ -490,10 +494,11 @@ CLEANUP_FILES += $(FEDORA_ROOT_ARCHIVE)
 FEDORA_ROOT_RELEASE ?= 28
 
 define _cmd_fedora_root =
-$(Q)tmpdir=$$(mktemp -d fedora_root.XXXXX) && \
-trap "rm -rf $$tmpdir" EXIT && \
+$(Q)set -u && \
+tmpdir=$$(pwd)/$$(mktemp -d fedora_root.XXXXX) && \
+trap "rm -rf -- \"$$tmpdir\"" EXIT INT TERM && \
 dnf install \
-  --installroot $(CURDIR)/$$tmpdir \
+  --installroot "$$tmpdir" \
   --releasever $(FEDORA_ROOT_RELEASE) \
   --disablerepo "*" \
   --enablerepo "fedora" \
@@ -502,11 +507,11 @@ dnf install \
   glibc-minimal-langpack \
   --setopt install_weak_deps=false \
   --assumeyes && \
-rm -rf \
-  $$tmpdir/var/cache \
-  $$tmpdir/var/log/dnf* && \
-tar -C $$tmpdir -cf $(CURDIR)/$@ . && \
-rm -rf -- $$tmpdir
+rm -rf -- \
+  "$$tmpdir"/var/cache \
+  "$$tmpdir"/var/log/dnf* && \
+tar -C "$$tmpdir" -cf $(CURDIR)/$@ . && \
+rm -rf -- "$$tmpdir"
 endef
 _log_cmd_fedora_root = DNF $@
 
