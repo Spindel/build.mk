@@ -262,6 +262,12 @@ endif
 ## variable specify how the image should be tagged. GitLab CI
 ## variables also affect the tag.
 ##
+## IMAGE_REPO currently needs to be a docker URL without the preceding
+## "docker://" transport.
+##
+## The IMAGE_REGISTRY and CI_REGISTRY variables will override the
+## registry in IMAGE_REPO.
+##
 ## Set the IMAGE_ARCHIVE variable to create rules for building and
 ## saving the container image to a tar archive.
 ##
@@ -329,10 +335,25 @@ endif
 IMAGE_TAG_SUFFIX ?= $(CI_COMMIT_REF_NAME)
 
 # Unique for this build
-IMAGE_LOCAL_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(CI_PIPELINE_ID)
+IMAGE_LOCAL_TAG = $(_image_repo):$(_image_tag_prefix)$(CI_PIPELINE_ID)
 
 # Final tag
-IMAGE_TAG = $(IMAGE_REPO):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
+IMAGE_TAG = $(_image_repo):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
+
+# Handle IMAGE_REPO set to $(CI_REGISTRY)/... when CI_REGISTRY is unset
+_image_repo_fixup = $(patsubst /%,localhost/%,$(IMAGE_REPO))
+
+_image_repo_registry = $(firstword $(subst /, ,$(_image_repo_fixup)))
+
+ifeq ($(IMAGE_REGISTRY),)
+ifneq ($(CI_REGISTRY),)
+IMAGE_REGISTRY = $(CI_REGISTRY)
+else
+IMAGE_REGISTRY = $(_image_repo_registry)
+endif # ifneq ($(CI_REGISTRY),)
+endif # ifeq ($(IMAGE_REGISTRY),)
+
+_image_repo = $(patsubst $(_image_repo_registry)/%,$(IMAGE_REGISTRY)/%,$(_image_repo_fixup))
 
 define _cmd_image =
 @$(if $(_log_cmd_image_$(1)), $(_log_before);printf '  %-9s %s\n' $(_log_cmd_image_$(1));$(_log_after);)
@@ -422,16 +443,18 @@ load:
 	$(call _cmd_image,load)
 
 ifneq ($(CI),)
+ifeq ($(CI_REGISTRY),$(IMAGE_REGISTRY))
 _registry_login_args = -u gitlab-ci-token -p "$$CI_BUILD_TOKEN"
+endif # ifeq ($(CI_REGISTRY),$(IMAGE_REGISTRY))
 endif # ifneq ($(CI),)
 
 define _cmd_image_buildah_login =
-  podman login $(_registry_login_args) $(IMAGE_REPO)
+  podman login $(_registry_login_args) $(IMAGE_REGISTRY)
 endef
 define _cmd_image_docker_login =
-  docker login $(_registry_login_args) $(IMAGE_REPO)
+  docker login $(_registry_login_args) $(IMAGE_REGISTRY)
 endef
-_log_cmd_image_login = LOGIN $(IMAGE_REPO)
+_log_cmd_image_login = LOGIN $(IMAGE_REGISTRY)
 
 login:
 	$(call _cmd_image,login)

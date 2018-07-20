@@ -11,4 +11,4 @@ test:
         - docker
         - x86_64
     script:
-        - make -C test login test
+        - make -C test login test test-publish
