@@ -4,6 +4,9 @@ stages:
 
 before_script:
     - uname -a
+    - make -f build.mk login
+    - "docker info ||:"
+    - "podman info ||:"
 
 test:
     stage: test
@@ -11,4 +14,4 @@ test:
         - docker
         - x86_64
     script:
-        - make -C test login test test-publish
+        - make -C test test test-publish
