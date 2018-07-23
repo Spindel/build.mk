@@ -294,6 +294,18 @@ endif
 ## variable is set, otherwise credentials will be prompted for if
 ## necessary.
 
+define _cmd_image =
+@$(if $(_log_cmd_image_$(1)), $(_log_before);printf '  %-9s %s\n' $(_log_cmd_image_$(1));$(_log_after);)
+$(Q)if command -v buildah >/dev/null && command -v podman >/dev/null; then \
+  $(_cmd_image_buildah_$(1)); \
+elif command -v docker >/dev/null; then \
+  $(_cmd_image_docker_$(1)); \
+else \
+  echo >&2 "Neither buildah/podman nor docker is available"; \
+  exit 1; \
+fi
+endef
+
 ifneq ($(IMAGE_REPO),)
 
 .PHONY: build save load publish build-publish login
@@ -339,33 +351,6 @@ IMAGE_LOCAL_TAG = $(_image_repo):$(_image_tag_prefix)$(CI_PIPELINE_ID)
 
 # Final tag
 IMAGE_TAG = $(_image_repo):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
-
-# Handle IMAGE_REPO set to $(CI_REGISTRY)/... when CI_REGISTRY is unset
-_image_repo_fixup = $(patsubst /%,localhost/%,$(IMAGE_REPO))
-
-_image_repo_registry = $(firstword $(subst /, ,$(_image_repo_fixup)))
-
-ifeq ($(IMAGE_REGISTRY),)
-ifneq ($(CI_REGISTRY),)
-IMAGE_REGISTRY = $(CI_REGISTRY)
-else
-IMAGE_REGISTRY = $(_image_repo_registry)
-endif # ifneq ($(CI_REGISTRY),)
-endif # ifeq ($(IMAGE_REGISTRY),)
-
-_image_repo = $(patsubst $(_image_repo_registry)/%,$(IMAGE_REGISTRY)/%,$(_image_repo_fixup))
-
-define _cmd_image =
-@$(if $(_log_cmd_image_$(1)), $(_log_before);printf '  %-9s %s\n' $(_log_cmd_image_$(1));$(_log_after);)
-$(Q)if command -v buildah >/dev/null && command -v podman >/dev/null; then \
-  $(_cmd_image_buildah_$(1)); \
-elif command -v docker >/dev/null; then \
-  $(_cmd_image_docker_$(1)); \
-else \
-  echo >&2 "Neither buildah/podman nor docker is available"; \
-  exit 1; \
-fi
-endef
 
 _buildah = buildah
 
@@ -442,23 +427,6 @@ _log_cmd_image_load = LOAD $(IMAGE_ARCHIVE)
 load:
 	$(call _cmd_image,load)
 
-ifneq ($(CI),)
-ifeq ($(CI_REGISTRY),$(IMAGE_REGISTRY))
-_registry_login_args = -u gitlab-ci-token -p "$$CI_BUILD_TOKEN"
-endif # ifeq ($(CI_REGISTRY),$(IMAGE_REGISTRY))
-endif # ifneq ($(CI),)
-
-define _cmd_image_buildah_login =
-  podman login $(_registry_login_args) $(IMAGE_REGISTRY)
-endef
-define _cmd_image_docker_login =
-  docker login $(_registry_login_args) $(IMAGE_REGISTRY)
-endef
-_log_cmd_image_login = LOGIN $(IMAGE_REGISTRY)
-
-login:
-	$(call _cmd_image,login)
-
 # Run command, for the automated test
 define _cmd_image_buildah_run =
   podman --storage-driver=vfs run --rm $(IMAGE_LOCAL_TAG)
@@ -479,6 +447,42 @@ _log_cmd_image_rmi_local = RMI $(IMAGE_LOCAL_TAG)
 
 endif # ifneq ($(IMAGE_REPO),)
 
+
+ifneq ($(IMAGE_REPO)$(CI_REGISTRY)$(IMAGE_REGISTRY),)
+
+# Handle IMAGE_REPO set to $(CI_REGISTRY)/... when CI_REGISTRY is unset
+_image_repo_fixup = $(patsubst /%,localhost/%,$(IMAGE_REPO))
+
+_image_repo_registry = $(firstword $(subst /, ,$(_image_repo_fixup)))
+
+ifeq ($(IMAGE_REGISTRY),)
+ifneq ($(CI_REGISTRY),)
+IMAGE_REGISTRY = $(CI_REGISTRY)
+else
+IMAGE_REGISTRY = $(_image_repo_registry)
+endif # ifneq ($(CI_REGISTRY),)
+endif # ifeq ($(IMAGE_REGISTRY),)
+
+_image_repo = $(patsubst $(_image_repo_registry)/%,$(IMAGE_REGISTRY)/%,$(_image_repo_fixup))
+
+ifneq ($(CI),)
+ifeq ($(CI_REGISTRY),$(IMAGE_REGISTRY))
+_registry_login_args = -u gitlab-ci-token -p "$$CI_BUILD_TOKEN"
+endif # ifeq ($(CI_REGISTRY),$(IMAGE_REGISTRY))
+endif # ifneq ($(CI),)
+
+define _cmd_image_buildah_login =
+  podman login $(_registry_login_args) $(IMAGE_REGISTRY)
+endef
+define _cmd_image_docker_login =
+  docker login $(_registry_login_args) $(IMAGE_REGISTRY)
+endef
+_log_cmd_image_login = LOGIN $(IMAGE_REGISTRY)
+
+login:
+	$(call _cmd_image,login)
+
+endif # ifneq ($(IMAGE_REPO)$(CI_REGISTRY)$(IMAGE_REGISTRY),)
 
 ######################################################################
 ### Test sequence helpers
