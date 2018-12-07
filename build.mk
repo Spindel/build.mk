@@ -45,6 +45,15 @@ endif
 endif
 
 
+# Workaround for problem with podman registry authentication. libpod
+# prefers to store its login credentials in
+# /var/run/container/$UID/auth.json, but only seems to successfully
+# find them in $HOME/.docker/config.json .
+ifneq ($(CI),)
+REGISTRY_AUTH_FILE ?= $(HOME)/.docker/config.json
+export REGISTRY_AUTH_FILE
+endif
+
 # MAKEFILE_LIST needs to be checked before any includes are processed.
 _buildmk_path := $(lastword $(MAKEFILE_LIST))
 
