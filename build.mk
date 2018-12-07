@@ -379,23 +379,23 @@ endef
 _log_cmd_image_build = BUILD $(IMAGE_LOCAL_TAG)
 
 define _cmd_image_buildah_publish =
-  $(_buildah) --storage-driver=vfs push $(IMAGE_LOCAL_TAG) docker://$(IMAGE_TAG); \
+  $(_buildah) --storage-driver=vfs push $(IMAGE_LOCAL_TAG) docker://$(IMAGE_TAG) && \
   $(_buildah) --storage-driver=vfs rmi $(IMAGE_LOCAL_TAG)
 endef
 define _cmd_image_docker_publish =
-  docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG); \
-  docker rmi $(IMAGE_LOCAL_TAG); \
-  docker push $(IMAGE_TAG); \
+  docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG) && \
+  docker rmi $(IMAGE_LOCAL_TAG) && \
+  docker push $(IMAGE_TAG) && \
   docker rmi $(IMAGE_TAG)
 endef
 _log_cmd_image_publish = PUBLISH $(IMAGE_TAG)
 
 define _cmd_image_buildah_save =
-  $(_buildah) --storage-driver=vfs push $(IMAGE_LOCAL_TAG) docker-archive:$(IMAGE_ARCHIVE):$(IMAGE_LOCAL_TAG); \
+  $(_buildah) --storage-driver=vfs push $(IMAGE_LOCAL_TAG) docker-archive:$(IMAGE_ARCHIVE):$(IMAGE_LOCAL_TAG) && \
   $(_buildah) --storage-driver=vfs rmi $(IMAGE_LOCAL_TAG)
 endef
 define _cmd_image_docker_save =
-  docker save $(IMAGE_LOCAL_TAG) > $(IMAGE_ARCHIVE); \
+  docker save $(IMAGE_LOCAL_TAG) > $(IMAGE_ARCHIVE) && \
   docker rmi $(IMAGE_LOCAL_TAG)
 endef
 _log_cmd_image_save = SAVE $(IMAGE_ARCHIVE)
