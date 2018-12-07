@@ -168,7 +168,7 @@ trap "rm -rf -- \"$$tmpdir\"" EXIT INT TERM && \
   $(_git) submodule sync && \
   $(_git) submodule update --init && \
   $(_git) submodule --quiet foreach 'echo $$path' | while read path; do \
-    match=$$(find $(SOURCE_ARCHIVE_PATH) -samefile $$path 2>/dev/null); \
+    match=$$(find $(SOURCE_ARCHIVE_PATH) -samefile $$path); \
     if [ -n "$$match" ]; then \
       (cd "$$path" && \
       $(_git) archive \
