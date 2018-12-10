@@ -45,6 +45,15 @@ endif
 endif
 
 
+# Workaround for problem with podman registry authentication. libpod
+# prefers to store its login credentials in
+# /var/run/container/$UID/auth.json, but only seems to successfully
+# find them in $HOME/.docker/config.json .
+ifneq ($(CI),)
+REGISTRY_AUTH_FILE ?= $(HOME)/.docker/config.json
+export REGISTRY_AUTH_FILE
+endif
+
 # MAKEFILE_LIST needs to be checked before any includes are processed.
 _buildmk_path := $(lastword $(MAKEFILE_LIST))
 
@@ -168,7 +177,7 @@ trap "rm -rf -- \"$$tmpdir\"" EXIT INT TERM && \
   $(_git) submodule sync && \
   $(_git) submodule update --init && \
   $(_git) submodule --quiet foreach 'echo $$path' | while read path; do \
-    match=$$(find $(SOURCE_ARCHIVE_PATH) -samefile $$path 2>/dev/null); \
+    match=$$(find $(SOURCE_ARCHIVE_PATH) -samefile $$path); \
     if [ -n "$$match" ]; then \
       (cd "$$path" && \
       $(_git) archive \
@@ -355,7 +364,7 @@ IMAGE_TAG = $(_image_repo):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
 _buildah = buildah
 
 define _cmd_image_buildah_build =
-  $(_buildah) --storage-driver=vfs bud --pull-always \
+  $(_buildah) bud --pull-always \
     --file=$< \
     --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
     --build-arg=COMMIT="$(CI_COMMIT_SHA)" \
@@ -379,8 +388,8 @@ endef
 _log_cmd_image_build = BUILD $(IMAGE_LOCAL_TAG)
 
 define _cmd_image_buildah_publish =
-  $(_buildah) --storage-driver=vfs push $(IMAGE_LOCAL_TAG) docker://$(IMAGE_TAG) && \
-  $(_buildah) --storage-driver=vfs rmi $(IMAGE_LOCAL_TAG)
+  $(_buildah) push $(IMAGE_LOCAL_TAG) docker://$(IMAGE_TAG) && \
+  $(_buildah) rmi $(IMAGE_LOCAL_TAG)
 endef
 define _cmd_image_docker_publish =
   docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG) && \
@@ -391,8 +400,8 @@ endef
 _log_cmd_image_publish = PUBLISH $(IMAGE_TAG)
 
 define _cmd_image_buildah_save =
-  $(_buildah) --storage-driver=vfs push $(IMAGE_LOCAL_TAG) docker-archive:$(IMAGE_ARCHIVE):$(IMAGE_LOCAL_TAG) && \
-  $(_buildah) --storage-driver=vfs rmi $(IMAGE_LOCAL_TAG)
+  $(_buildah) push $(IMAGE_LOCAL_TAG) docker-archive:$(IMAGE_ARCHIVE):$(IMAGE_LOCAL_TAG) && \
+  $(_buildah) rmi $(IMAGE_LOCAL_TAG)
 endef
 define _cmd_image_docker_save =
   docker save $(IMAGE_LOCAL_TAG) > $(IMAGE_ARCHIVE) && \
@@ -417,7 +426,7 @@ publish:
 endif # ifeq($(_git),)
 
 define _cmd_image_buildah_load =
-  podman --storage-driver=vfs load < $(IMAGE_ARCHIVE)
+  podman load < $(IMAGE_ARCHIVE)
 endef
 define _cmd_image_docker_load =
   docker load < $(IMAGE_ARCHIVE)
@@ -429,7 +438,7 @@ load:
 
 # Run command, for the automated test
 define _cmd_image_buildah_run =
-  podman --storage-driver=vfs run --rm $(IMAGE_LOCAL_TAG)
+  podman run --rm $(IMAGE_LOCAL_TAG)
 endef
 define _cmd_image_docker_run =
   docker run --rm $(IMAGE_LOCAL_TAG)
@@ -438,7 +447,7 @@ _log_cmd_image_run = RUN $(IMAGE_LOCAL_TAG)
 
 # Remove loaded image command, for the automated test
 define _cmd_image_buildah_rmi_local =
-  $(_buildah) --storage-driver=vfs rmi $(IMAGE_LOCAL_TAG)
+  $(_buildah) rmi $(IMAGE_LOCAL_TAG)
 endef
 define _cmd_image_docker_rmi_local =
   docker rmi $(IMAGE_LOCAL_TAG)
