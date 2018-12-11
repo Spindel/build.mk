@@ -122,8 +122,8 @@ test-image-should-be-runnable:
 	$(Q)$(MAKE) clean && \
 	$(MAKE) $(IMAGE_ARCHIVE) && \
 	$(MAKE) load
-	$(call _cmd_image,run)
-	$(call _cmd_image,rmi_local)
+	$(MAKE) run-image
+	$(MAKE) remove-local-image
 
 
 .PHONY: test-image-should-be-publishable
