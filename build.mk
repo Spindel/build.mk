@@ -286,8 +286,18 @@ endif
 ## If the container image uses any built file, these should be added
 ## to the IMAGE_FILES variable.
 ##
-## The build-publish goal will build and push the image without
-## hitting the filesystem.
+## The build-publish goal will build an image, optionally run a test,
+## and push the image.
+##
+## If the variable IMAGE_TEST_CMD is set, the image will be run as a
+## container with the variables contents as the command. If this
+## returns a non-zero exit status the goal will fail, and the image
+## will not be pushed.
+##
+## Additional arguments to running the test container may be passed
+## with IMAGE_TEST_ARGS. Often this needs to contain "-t".
+##
+## The test may also be run separately with the test-image goal.
 ##
 ## The build and save goals both build an image and export it to
 ## $(IMAGE_ARCHIVE).
@@ -416,6 +426,7 @@ _log_cmd_image_save = SAVE $(IMAGE_ARCHIVE)
 
 build-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,build)
+	$(call _cmd_image,test)
 	$(call _cmd_image,publish)
 
 $(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
@@ -452,9 +463,21 @@ _log_cmd_image_run = RUN $(IMAGE_LOCAL_TAG)
 run-image:
 	$(call _cmd_image,run)
 
+IMAGE_TEST_ARGS ?= $(IMAGE_RUN_ARGS)
+define _cmd_image_buildah_test =
+  $(if $(IMAGE_TEST_CMD),podman run --rm $(IMAGE_TEST_ARGS) $(IMAGE_LOCAL_TAG) $(IMAGE_TEST_CMD),:)
+endef
+define _cmd_image_docker_test =
+  $(if $(IMAGE_TEST_CMD),docker run --rm $(IMAGE_TEST_ARGS) $(IMAGE_LOCAL_TAG) $(IMAGE_TEST_CMD),:)
+endef
+_log_cmd_image_test = TEST $(IMAGE_LOCAL_TAG) $(if $(IMAGE_TEST_CMD),,"(skipped)")
+
+test-image:
+	$(call _cmd_image,test)
+
 # Remove loaded image command, for the automated test
 define _cmd_image_buildah_rmi_local =
-  $(_buildah) rmi $(IMAGE_LOCAL_TAG)
+  podman rmi $(IMAGE_LOCAL_TAG)
 endef
 define _cmd_image_docker_rmi_local =
   docker rmi $(IMAGE_LOCAL_TAG)
