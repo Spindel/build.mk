@@ -54,6 +54,9 @@ test:
 	$(MAKE) test-compiled-archive-should-contain-compiled-file; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-registry-should-be-correctly-set; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-image-should-be-runnable; $(RECORD_TEST_STATUS) \
+	$(MAKE) test-image-without-test-should-be-testable; $(RECORD_TEST_STATUS) \
+	$(MAKE) test-image-with-working-test-should-succeed; $(RECORD_TEST_STATUS) \
+	$(MAKE) test-image-with-failing-test-should-fail; $(RECORD_TEST_STATUS) \
 	$(MAKE) clean; \
 	$(RETURN_TEST_STATUS)
 
@@ -123,6 +126,36 @@ test-image-should-be-runnable:
 	$(MAKE) $(IMAGE_ARCHIVE) && \
 	$(MAKE) load
 	$(MAKE) run-image
+	$(MAKE) remove-local-image
+
+
+.PHONY: test-image-without-test-should-be-testable
+test-image-without-test-should-be-testable:
+	@echo $@
+	$(Q)$(MAKE) clean && \
+	$(MAKE) $(IMAGE_ARCHIVE) && \
+	$(MAKE) load
+	$(MAKE) test-image
+	$(MAKE) remove-local-image
+
+
+.PHONY: test-image-with-working-test-should-succeed
+test-image-with-working-test-should-succeed:
+	@echo $@
+	$(Q)$(MAKE) clean && \
+	$(MAKE) $(IMAGE_ARCHIVE) && \
+	$(MAKE) load
+	$(MAKE) test-image IMAGE_TEST_CMD=/bin/true
+	$(MAKE) remove-local-image
+
+
+.PHONY: test-image-with-failing-test-should-fail
+test-image-with-failing-test-should-fail:
+	@echo $@
+	$(Q)$(MAKE) clean && \
+	$(MAKE) $(IMAGE_ARCHIVE) && \
+	$(MAKE) load
+	( ! $(MAKE) test-image IMAGE_TEST_CMD=/bin/false ) && :
 	$(MAKE) remove-local-image
 
 
