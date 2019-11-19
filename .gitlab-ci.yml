@@ -1,4 +1,4 @@
-image: registry.gitlab.com/modioab/base-image/fedora-29/build:master
+image: registry.gitlab.com/modioab/base-image/fedora-31/build:master
 stages:
     - test
 
