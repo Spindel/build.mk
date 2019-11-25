@@ -560,7 +560,7 @@ ifneq ($(FEDORA_ROOT_ARCHIVE),)
 
 CLEANUP_FILES += $(FEDORA_ROOT_ARCHIVE)
 
-FEDORA_ROOT_RELEASE ?= 28
+FEDORA_ROOT_RELEASE ?= 31
 
 define _cmd_fedora_root =
 $(Q)set -u && \
