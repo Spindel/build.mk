@@ -5,7 +5,7 @@ stages:
 before_script:
     - uname -a
     - make -f build.mk login
-    - "podman info ||:"
+    - podman ${BUILDAH_RUNTIME+--runtime} ${BUILDAH_RUNTIME} info
 
 test:
     stage: test
