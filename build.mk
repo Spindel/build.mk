@@ -378,6 +378,12 @@ IMAGE_TAG = $(_image_repo):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
 
 _buildah = buildah
 
+ifdef BUILDAH_RUNTIME
+_podman_run = podman --runtime=$(BUILDAH_RUNTIME) run
+else
+_podman_run = podman run
+endif
+
 define _cmd_image_buildah_build =
   $(_buildah) bud --pull-always \
     --file=$< \
@@ -453,7 +459,7 @@ load:
 	$(call _cmd_image,load)
 
 define _cmd_image_buildah_run =
-  podman run --rm $(IMAGE_RUN_ARGS) $(IMAGE_LOCAL_TAG) $(IMAGE_RUN_CMD)
+  $(_podman_run) --rm $(IMAGE_RUN_ARGS) $(IMAGE_LOCAL_TAG) $(IMAGE_RUN_CMD)
 endef
 define _cmd_image_docker_run =
   docker run --rm $(IMAGE_RUN_ARGS) $(IMAGE_LOCAL_TAG) $(IMAGE_RUN_CMD)
@@ -465,7 +471,7 @@ run-image:
 
 IMAGE_TEST_ARGS ?= $(IMAGE_RUN_ARGS)
 define _cmd_image_buildah_test =
-  $(if $(IMAGE_TEST_CMD),podman run --rm $(IMAGE_TEST_ARGS) $(IMAGE_LOCAL_TAG) $(IMAGE_TEST_CMD),:)
+  $(if $(IMAGE_TEST_CMD),$(_podman_run) --rm $(IMAGE_TEST_ARGS) $(IMAGE_LOCAL_TAG) $(IMAGE_TEST_CMD),:)
 endef
 define _cmd_image_docker_test =
   $(if $(IMAGE_TEST_CMD),docker run --rm $(IMAGE_TEST_ARGS) $(IMAGE_LOCAL_TAG) $(IMAGE_TEST_CMD),:)
@@ -560,7 +566,7 @@ ifneq ($(FEDORA_ROOT_ARCHIVE),)
 
 CLEANUP_FILES += $(FEDORA_ROOT_ARCHIVE)
 
-FEDORA_ROOT_RELEASE ?= 28
+FEDORA_ROOT_RELEASE ?= 31
 
 define _cmd_fedora_root =
 $(Q)set -u && \

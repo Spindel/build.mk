@@ -1,12 +1,11 @@
-image: registry.gitlab.com/modioab/base-image/fedora-29/build:master
+image: registry.gitlab.com/modioab/base-image/fedora-31/build:master
 stages:
     - test
 
 before_script:
     - uname -a
     - make -f build.mk login
-    - "docker info ||:"
-    - "podman info ||:"
+    - podman ${BUILDAH_RUNTIME+--runtime} ${BUILDAH_RUNTIME} info
 
 test:
     stage: test
