@@ -57,6 +57,7 @@ test:
 	$(MAKE) test-image-without-test-should-be-testable; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-image-with-working-test-should-succeed; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-image-with-failing-test-should-fail; $(RECORD_TEST_STATUS) \
+	$(MAKE)	test-image-no-pull-should-fail-properly; $(RECORD_TEST_STATUS) \
 	$(MAKE) clean; \
 	$(RETURN_TEST_STATUS)
 
@@ -164,3 +165,11 @@ test-image-should-be-publishable:
 	@echo $@
 	$(Q)$(MAKE) clean
 	$(Q)$(MAKE) build-publish
+
+
+.PHONY: test-image-no-pull-should-fail-properly
+test-image-no-pull-should-fail-properly:
+	@echo $@
+	$(Q)$(MAKE) clean
+	( ! $(MAKE) BUILDAH_PULL=--pull-never IMAGE_DOCKERFILE=Dockerfile.nofrom build ) && :
+	$(MAKE) clean
