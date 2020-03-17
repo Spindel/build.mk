@@ -58,6 +58,8 @@ test:
 	$(MAKE) test-image-with-working-test-should-succeed; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-image-with-failing-test-should-fail; $(RECORD_TEST_STATUS) \
 	$(MAKE)	test-image-no-pull-should-fail-properly; $(RECORD_TEST_STATUS) \
+	$(MAKE) test-image-should-be-republishable; $(RECORD_TEST_STATUS) \
+	$(MAKE) test-image-should-be-re-loadable; $(RECORD_TEST_STATUS) \
 	$(MAKE) clean; \
 	$(RETURN_TEST_STATUS)
 
@@ -173,3 +175,26 @@ test-image-no-pull-should-fail-properly:
 	$(Q)$(MAKE) clean
 	( ! $(MAKE) BUILDAH_PULL=--pull-never IMAGE_DOCKERFILE=Dockerfile.nofrom build ) && :
 	$(MAKE) clean
+
+
+.PHONY: test-image-should-be-re-loadable
+test-image-should-be-re-loadable:
+	@echo $@
+	$(Q)$(MAKE) clean
+	$(Q)$(MAKE) temp-publish
+	$(Q)$(MAKE) test-image IMAGE_TEST_CMD=/bin/true
+	$(Q)$(MAKE) clean
+	$(MAKE) temp-pull
+	$(Q)$(MAKE) test-image IMAGE_TEST_CMD=/bin/true
+	$(Q)$(MAKE) remove-local-image
+
+
+.PHONY: test-image-should-be-republishable
+test-image-should-be-republishable:
+	@echo $@
+	$(Q)$(MAKE) clean
+	$(Q)$(MAKE) temp-publish
+	# Important to get rid of any tarballs
+	$(Q)$(MAKE) clean
+	$(Q)$(MAKE) temp-pull
+	$(Q)$(MAKE) publish
