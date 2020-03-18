@@ -1,6 +1,7 @@
 image: registry.gitlab.com/modioab/base-image/fedora-31/build:master
 stages:
     - test
+    - again
 
 before_script:
     - uname -a
@@ -13,3 +14,14 @@ test:
         - x86_64
     script:
         - make -C test test test-publish
+        - make -C test temp-publish
+
+
+test:container:
+    stage: again
+    tags:
+        - x86_64
+    image: registry.gitlab.com/modioab/build.mk/test-container:${CI_PIPELINE_ID}
+    before_script: []
+    script:
+        - /usr/bin/python3 /container-script.py

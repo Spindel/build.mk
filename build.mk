@@ -332,7 +332,7 @@ endef
 
 ifneq ($(IMAGE_REPO),)
 
-.PHONY: build save load run-image remove-local-image publish build-publish login
+.PHONY: build save load run-image remove-local-image publish build-publish login temp-publish temp-pull
 
 IMAGE_DOCKERFILE ?= Dockerfile
 IMAGE_ARCHIVE ?= dummy.tar
@@ -426,6 +426,18 @@ define _cmd_image_docker_publish =
 endef
 _log_cmd_image_publish = PUBLISH $(IMAGE_TAG)
 
+
+define _cmd_image_buildah_temp-publish =
+  $(_buildah) push docker://$(IMAGE_LOCAL_TAG) && \
+  $(_buildah) rmi $(IMAGE_LOCAL_TAG)
+endef
+define _cmd_image_docker_temp-publish =
+  docker push $(IMAGE_LOCAL_TAG) && \
+  docker rmi $(IMAGE_LOCAL_TAG)
+endef
+_log_cmd_image_temp-publish = TEMP-PUBLISH $(IMAGE_LOCAL_TAG)
+
+
 define _cmd_image_buildah_save =
   $(_buildah) push $(IMAGE_LOCAL_TAG) docker-archive:$(IMAGE_ARCHIVE):$(IMAGE_LOCAL_TAG) && \
   $(_buildah) rmi $(IMAGE_LOCAL_TAG)
@@ -440,6 +452,10 @@ build-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,build)
 	$(call _cmd_image,test)
 	$(call _cmd_image,publish)
+
+temp-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
+	$(call _cmd_image,build)
+	$(call _cmd_image,temp-publish)
 
 $(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,build)
@@ -463,6 +479,19 @@ _log_cmd_image_load = LOAD $(IMAGE_ARCHIVE)
 
 load:
 	$(call _cmd_image,load)
+
+
+define _cmd_image_buildah_temp-pull =
+  $(_buildah) pull docker://$(IMAGE_LOCAL_TAG)
+endef
+define _cmd_image_docker_temp-pull =
+  docker pull $(IMAGE_LOCAL_TAG)
+endef
+_log_cmd_image_temp-pull = TEMP-PULL $(IMAGE_LOCAL_TAG)
+
+temp-pull:
+	$(call _cmd_image,temp-pull)
+	$(call _cmd_image,save)
 
 define _cmd_image_buildah_run =
   $(_podman_run) --rm $(IMAGE_RUN_ARGS) $(IMAGE_LOCAL_TAG) $(IMAGE_RUN_CMD)
