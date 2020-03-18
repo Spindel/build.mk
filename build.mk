@@ -384,8 +384,14 @@ else
 _podman_run = podman run
 endif
 
+ifdef BUILDAH_PULL
+_bud_pull = $(BUILDAH_PULL)
+else
+_bud_pull = --pull-always
+endif
+
 define _cmd_image_buildah_build =
-  $(_buildah) bud --pull-always \
+  $(_buildah) bud $(_bud_pull) \
     --file=$< \
     --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
     --build-arg=COMMIT="$(CI_COMMIT_SHA)" \
