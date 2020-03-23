@@ -1,6 +1,6 @@
 # build.mk --- Makefile include for building container images
 
-# Copyright (C) 2018 Modio AB
+# Copyright (C) 2018-2020 Modio AB
 
 # https://gitlab.com/ModioAB/build.mk/
 
