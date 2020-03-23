@@ -457,8 +457,11 @@ temp-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,build)
 	$(call _cmd_image,temp-publish)
 
+# Save the existing image to a tar archive. Remove any existing
+# archive first, because buildah won't overwrite it.
 $(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,build)
+	$(Q)rm -f -- $(IMAGE_ARCHIVE)
 	$(call _cmd_image,save)
 
 build save: $(IMAGE_ARCHIVE)
