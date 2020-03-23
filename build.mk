@@ -122,6 +122,8 @@ _archive_prefix := $(patsubst %/,%,$(patsubst /%,%,$(ARCHIVE_PREFIX)))/
 GIT ?= git
 _git = $(shell command -v $(GIT))
 
+_git_working_copy_clean = $(_git) diff-index --quiet HEAD
+
 # Check if we have a curl binary, same as for _git.
 CURL ?= curl
 _curl = $(shell command -v $(CURL))
@@ -166,7 +168,11 @@ GIT_HEAD_REF_FILE := $(shell if [ -f $(GIT_HEAD_REF_FILE) ]; then \
                              fi)
 
 define _cmd_source_archive =
-$(Q)set -u && \
+$(Q)if ! $(_git_working_copy_clean); then \
+  echo >&2 "*** NOTE - These uncommitted changes aren't included in $@: ***"; \
+  $(_git) status --short; \
+fi; \
+set -u && \
 tmpdir=$$(pwd)/$$(mktemp -d submodules.XXXXX) && \
 trap "rm -rf -- \"$$tmpdir\"" EXIT INT TERM && \
 (cd "$(GIT_TOP_DIR)" && \
@@ -648,7 +654,7 @@ _buildmk_release_ref = master
 _buildmk_repo = $(_buildmk_baseurl).git
 
 define _cmd_update_buildmk =
-$(Q)if ! $(_git) diff-index --quiet HEAD; then \
+$(Q)if ! $(_git_working_copy_clean); then \
   echo >&2 "The git working copy needs to be clean."; \
 else \
   $(_git) ls-remote -q $(_buildmk_repo) $(_buildmk_release_ref) | \
