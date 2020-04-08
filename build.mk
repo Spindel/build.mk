@@ -57,8 +57,8 @@ endif
 # MAKEFILE_LIST needs to be checked before any includes are processed.
 _buildmk_path := $(lastword $(MAKEFILE_LIST))
 
-# In the rare case that stdout is a TTY while TERM is not set, provide a
-# fallback.
+# In the rare case that stdout is a TTY while TERM is not set, provide
+# a fallback.
 TERM ?= dumb
 
 _tput = $(shell command -v tput)
@@ -270,8 +270,8 @@ endif
 ### Container image
 ######################################################################
 
-## Set the IMAGE_REPO variable to a container registry URL to create rules
-## which will build and push a container image.
+## Set the IMAGE_REPO variable to a container registry URL to create
+## rules which will build and push a container image.
 ##
 ## The IMAGE_REPO variable and optionally the IMAGE_TAG_PREFIX
 ## variable specify how the image should be tagged. GitLab CI
@@ -291,6 +291,14 @@ endif
 ##
 ## If the container image uses any built file, these should be added
 ## to the IMAGE_FILES variable.
+##
+## Set IMAGE_BUILD_VOLUME to an absolute path to a directory to make
+## it available in the container during the build phase.
+##
+## The contents of this directory should be added to the IMAGE_FILES
+## variable to ensure it is tracked properly.  This can be used to
+## ship in binary packages or resources that are only used for
+## installation inside the container.
 ##
 ## The build-publish goal will build an image, optionally run a test,
 ## and push the image.
@@ -323,6 +331,15 @@ endif
 ## will use GitLab CI credentials from the environment if the CI
 ## variable is set, otherwise credentials will be prompted for if
 ## necessary.
+##
+## BUILDAH_PULL can be set to an argument like "--pull-never" in order
+## to not pull a fresh upstream container, like in cases where a
+## previous local container in a CI step is to be used.
+##
+## BUILDAH_RUNTIME controls which runtime to use, crun, runc, other.
+## This can be required to change depending on the host OS and how it
+## uses cgroups.
+## (cgroup v2 is at the moment only supported on crun, not runc)
 
 define _cmd_image =
 @$(if $(_log_cmd_image_$(1)), $(_log_before);printf '  %-9s %s\n' $(_log_cmd_image_$(1));$(_log_after);)
@@ -384,6 +401,13 @@ IMAGE_TAG = $(_image_repo):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
 
 _buildah = buildah
 
+ifdef IMAGE_BUILD_VOLUME
+_build_volume = --volume $(IMAGE_BUILD_VOLUME):/build:ro,z
+else
+_build_volume =
+endif
+
+
 ifdef BUILDAH_RUNTIME
 _podman_run = podman --runtime=$(BUILDAH_RUNTIME) run
 else
@@ -398,6 +422,7 @@ endif
 
 define _cmd_image_buildah_build =
   $(_buildah) bud $(_bud_pull) \
+    $(_build_volume) \
     --file=$< \
     --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
     --build-arg=COMMIT="$(CI_COMMIT_SHA)" \
@@ -410,6 +435,7 @@ endef
 define _cmd_image_docker_build =
   docker build --pull --no-cache \
     --file=$< \
+    $(_build_volume) \
     --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
     --build-arg=COMMIT="$(CI_COMMIT_SHA)" \
     --build-arg=URL="$(CI_PROJECT_URL)" \
@@ -458,6 +484,62 @@ build-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,build)
 	$(call _cmd_image,test)
 	$(call _cmd_image,publish)
+
+######################################################################
+### Testing the image
+######################################################################
+
+## When building complex applications, sometimes you want to run
+## integration tests inside the image used for production.
+##
+## Simple tests can be done by setting the variable
+## IMAGE_TEST_CMD in combination with IMAGE_TEST_ARGS as discussed in
+## the "Container Image" section
+##
+## More complex tests, that require runtime services, like databases
+## and more can be performed by using the temp-publish target.
+##
+## The temp-publish target will publish a container to the registry
+## with a tag that is combined from the image tag prefix and the
+## variable CI_PIPELINE_ID.
+##
+## Usually this comes in the form of
+## registry.gitlab.com/myname/myproject/mycontainer:${CI_PIPELINE_ID}
+##
+## To use it, declare a CI step as depending on the one calling
+## `make temp-publish` with the `image: ` argument set
+## registry.gitlab.com/myname/myproject/container-name:${CI_PIPELINE_ID}
+## and adding whatever container services you need.
+##
+## Then, the step after your integration test, call `make temp-pull`
+## followed by `make publish`.
+##
+## An example here, in approximate .gitlab-ci.yml syntax
+##
+## build:
+##   image: something/something
+##   script:
+##     - make temp-publish
+##
+## integration:
+##   needs:
+##     - build
+##   image: registry.gitlab.com/myname/myproj/container:${CI_PIPELINE_ID}
+##   services:
+##     - postgres/latest
+##   script:
+##     - /usr/local/bin/testcase
+##
+## publish:
+##   image: something/something
+##   needs:
+##     - integration
+##     - build
+##   script:
+##     - make temp-pull
+##     - make publish
+##
+##
 
 temp-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,build)
