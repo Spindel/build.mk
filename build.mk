@@ -384,6 +384,13 @@ IMAGE_TAG = $(_image_repo):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
 
 _buildah = buildah
 
+ifdef IMAGE_BUILD_VOLUME
+_build_volume = --volume $(IMAGE_BUILD_VOLUME):/build:ro,z
+else
+_build_volume =
+endif
+
+
 ifdef BUILDAH_RUNTIME
 _podman_run = podman --runtime=$(BUILDAH_RUNTIME) run
 else
@@ -398,6 +405,7 @@ endif
 
 define _cmd_image_buildah_build =
   $(_buildah) bud $(_bud_pull) \
+    $(_build_volume) \
     --file=$< \
     --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
     --build-arg=COMMIT="$(CI_COMMIT_SHA)" \
@@ -410,6 +418,7 @@ endef
 define _cmd_image_docker_build =
   docker build --pull --no-cache \
     --file=$< \
+    $(_build_volume) \
     --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
     --build-arg=COMMIT="$(CI_COMMIT_SHA)" \
     --build-arg=URL="$(CI_PROJECT_URL)" \
