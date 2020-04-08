@@ -57,8 +57,8 @@ endif
 # MAKEFILE_LIST needs to be checked before any includes are processed.
 _buildmk_path := $(lastword $(MAKEFILE_LIST))
 
-# In the rare case that stdout is a TTY while TERM is not set, provide a
-# fallback.
+# In the rare case that stdout is a TTY while TERM is not set, provide
+# a fallback.
 TERM ?= dumb
 
 _tput = $(shell command -v tput)
@@ -270,8 +270,8 @@ endif
 ### Container image
 ######################################################################
 
-## Set the IMAGE_REPO variable to a container registry URL to create rules
-## which will build and push a container image.
+## Set the IMAGE_REPO variable to a container registry URL to create
+## rules which will build and push a container image.
 ##
 ## The IMAGE_REPO variable and optionally the IMAGE_TAG_PREFIX
 ## variable specify how the image should be tagged. GitLab CI
@@ -296,9 +296,9 @@ endif
 ## it available in the container during the build phase.
 ##
 ## The contents of this directory should be added to the IMAGE_FILES
-## variable to ensure it is tracked properly.  This can be used to ship
-## in binary packages or resources that are only used for installation
-## inside the container.
+## variable to ensure it is tracked properly.  This can be used to
+## ship in binary packages or resources that are only used for
+## installation inside the container.
 ##
 ## The build-publish goal will build an image, optionally run a test,
 ## and push the image.
@@ -333,12 +333,13 @@ endif
 ## necessary.
 ##
 ## BUILDAH_PULL can be set to an argument like "--pull-never" in order
-## to not pull a fresh upstream container, like in cases where a previous
-## local container in a CI step is to be used.
+## to not pull a fresh upstream container, like in cases where a
+## previous local container in a CI step is to be used.
 ##
-## BUILDAH_RUNTIME controls which runtime to use, crun, runc or others.
+## BUILDAH_RUNTIME controls which runtime to use, crun, runc, other.
 ## This can be required to change depending on the host OS and how it
-## uses cgroups (cgroup v2 is at the moment only supported on crun, not runc)
+## uses cgroups.
+## (cgroup v2 is at the moment only supported on crun, not runc)
 
 define _cmd_image =
 @$(if $(_log_cmd_image_$(1)), $(_log_before);printf '  %-9s %s\n' $(_log_cmd_image_$(1));$(_log_after);)
