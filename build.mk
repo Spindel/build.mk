@@ -295,9 +295,10 @@ endif
 ## Set IMAGE_BUILD_VOLUME to an absolute path to a directory to make
 ## it available in the container during the build phase.
 ##
-## This directory should be added to the IMAGE_FILES variable to ensure
-## it is tracked properly.  This can be used to ship in binary packages
-## or resources that are only used for installation inside the container.
+## The contents of this directory should be added to the IMAGE_FILES
+## variable to ensure it is tracked properly.  This can be used to ship
+## in binary packages or resources that are only used for installation
+## inside the container.
 ##
 ## The build-publish goal will build an image, optionally run a test,
 ## and push the image.
