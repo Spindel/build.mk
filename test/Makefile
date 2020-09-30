@@ -174,7 +174,7 @@ test-image-should-be-publishable:
 test-image-no-pull-should-fail-properly:
 	@echo $@
 	$(Q)$(MAKE) clean
-	( ! $(MAKE) BUILDAH_PULL=--pull-never IMAGE_DOCKERFILE=Dockerfile.nofrom build ) && :
+	( ! $(MAKE) PODMAN_PULL=--pull-never IMAGE_DOCKERFILE=Dockerfile.nofrom build ) && :
 	$(MAKE) clean
 
 
