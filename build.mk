@@ -662,7 +662,7 @@ define _cmd_image_podman_login =
   echo "$$CI_BUILD_TOKEN" | podman login $(_registry_login_user) --password-stdin $(IMAGE_REGISTRY)
 endef
 define _cmd_image_docker_login =
-  docker login $(_registry_login_user) -p "$$CI_BUILD_TOKEN" $(IMAGE_REGISTRY)
+  echo "$$CI_BUILD_TOKEN" | docker login $(_registry_login_user) --password-stdin $(IMAGE_REGISTRY)
 endef
 _log_cmd_image_login = LOGIN $(IMAGE_REGISTRY)
 
