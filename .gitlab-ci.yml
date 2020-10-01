@@ -6,12 +6,9 @@ stages:
 before_script:
     - uname -a
     - make -f build.mk login
-    # PODMAN_RUNTIME defaults to BUILDAH_RUNTIME only if
-    # BUILDAH_RUNTIME is set:
-    - ": ${BUILDAH_RUNTIME+${PODMAN_RUNTIME=$BUILDAH_RUNTIME}}"
-    # This is because PODMAN_RUNTIME needs to be unset and not empty
-    # if this is to work:
-    - podman ${PODMAN_RUNTIME+--runtime} ${PODMAN_RUNTIME} info
+    # PODMAN_RUNTIME falls back to BUILDAH_RUNTIME only if unset
+    - ": ${PODMAN_RUNTIME=$BUILDAH_RUNTIME}"
+    - podman ${PODMAN_RUNTIME:+--runtime} ${PODMAN_RUNTIME} info
 
 test:
     stage: test
