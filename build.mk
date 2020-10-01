@@ -332,23 +332,23 @@ endif
 ## variable is set, otherwise credentials will be prompted for if
 ## necessary.
 ##
-## BUILDAH_PULL can be set to an argument like "--pull-never" in order
+## PODMAN_PULL can be set to an argument like "--pull-never" in order
 ## to not pull a fresh upstream container, like in cases where a
 ## previous local container in a CI step is to be used.
 ##
-## BUILDAH_RUNTIME controls which runtime to use, crun, runc, other.
+## PODMAN_RUNTIME controls which runtime to use, crun, runc, other.
 ## This can be required to change depending on the host OS and how it
 ## uses cgroups.
 ## (cgroup v2 is at the moment only supported on crun, not runc)
 
 define _cmd_image =
 @$(if $(_log_cmd_image_$(1)), $(_log_before);printf '  %-9s %s\n' $(_log_cmd_image_$(1));$(_log_after);)
-$(Q)if command -v buildah >/dev/null && command -v podman >/dev/null; then \
-  $(_cmd_image_buildah_$(1)); \
+$(Q)if command -v podman >/dev/null >/dev/null; then \
+  $(_cmd_image_podman_$(1)); \
 elif command -v docker >/dev/null; then \
   $(_cmd_image_docker_$(1)); \
 else \
-  echo >&2 "Neither buildah/podman nor docker is available"; \
+  echo >&2 "Neither podman nor docker is available"; \
   exit 1; \
 fi
 endef
@@ -399,7 +399,7 @@ IMAGE_LOCAL_TAG = $(_image_repo):$(_image_tag_prefix)$(CI_PIPELINE_ID)
 # Final tag
 IMAGE_TAG = $(_image_repo):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
 
-_buildah = buildah
+_podman = podman
 
 ifdef IMAGE_BUILD_VOLUME
 _build_volume = --volume $(IMAGE_BUILD_VOLUME):/build:ro,z
@@ -409,19 +409,32 @@ endif
 
 
 ifdef BUILDAH_RUNTIME
-_podman_run = podman --runtime=$(BUILDAH_RUNTIME) run
+$(warning You should use PODMAN_RUNTIME instead of BUILDAH_RUNTIME)
+endif
+
+ifdef PODMAN_RUNTIME
+_podman_run = $(_podman) --runtime=$(PODMAN_RUNTIME) run
+else ifdef BUILDAH_RUNTIME
+_podman_run = $(_podman) --runtime=$(BUILDAH_RUNTIME) run
 else
-_podman_run = podman run
+_podman_run = $(_podman) run
+endif
+
+
+
+ifdef PODMAN_PULL
+_podman_pull_args = $(PODMAN_PULL)
+else
+_podman_pull_args = --pull-always
 endif
 
 ifdef BUILDAH_PULL
-_bud_pull = $(BUILDAH_PULL)
-else
-_bud_pull = --pull-always
+$(error You should use PODMAN_PULL instead of BUILDAH_PULL)
 endif
 
-define _cmd_image_buildah_build =
-  $(_buildah) bud $(_bud_pull) \
+
+define _cmd_image_podman_build =
+  $(_podman) build $(_podman_pull_args) \
     $(_build_volume) \
     --file=$< \
     --build-arg=BRANCH="$(CI_COMMIT_REF_NAME)" \
@@ -446,9 +459,9 @@ define _cmd_image_docker_build =
 endef
 _log_cmd_image_build = BUILD $(IMAGE_LOCAL_TAG)
 
-define _cmd_image_buildah_publish =
-  $(_buildah) push $(IMAGE_LOCAL_TAG) docker://$(IMAGE_TAG) && \
-  $(_buildah) rmi $(IMAGE_LOCAL_TAG)
+define _cmd_image_podman_publish =
+  $(_podman) push $(IMAGE_LOCAL_TAG) docker://$(IMAGE_TAG) && \
+  $(_podman) rmi $(IMAGE_LOCAL_TAG)
 endef
 define _cmd_image_docker_publish =
   docker tag $(IMAGE_LOCAL_TAG) $(IMAGE_TAG) && \
@@ -459,9 +472,9 @@ endef
 _log_cmd_image_publish = PUBLISH $(IMAGE_TAG)
 
 
-define _cmd_image_buildah_temp-publish =
-  $(_buildah) push docker://$(IMAGE_LOCAL_TAG) && \
-  $(_buildah) rmi $(IMAGE_LOCAL_TAG)
+define _cmd_image_podman_temp-publish =
+  $(_podman) push docker://$(IMAGE_LOCAL_TAG) && \
+  $(_podman) rmi $(IMAGE_LOCAL_TAG)
 endef
 define _cmd_image_docker_temp-publish =
   docker push $(IMAGE_LOCAL_TAG) && \
@@ -470,9 +483,9 @@ endef
 _log_cmd_image_temp-publish = TEMP-PUBLISH $(IMAGE_LOCAL_TAG)
 
 
-define _cmd_image_buildah_save =
-  $(_buildah) push $(IMAGE_LOCAL_TAG) docker-archive:$(IMAGE_ARCHIVE):$(IMAGE_LOCAL_TAG) && \
-  $(_buildah) rmi $(IMAGE_LOCAL_TAG)
+define _cmd_image_podman_save =
+  $(_podman) push $(IMAGE_LOCAL_TAG) docker-archive:$(IMAGE_ARCHIVE):$(IMAGE_LOCAL_TAG) && \
+  $(_podman) rmi $(IMAGE_LOCAL_TAG)
 endef
 define _cmd_image_docker_save =
   docker save $(IMAGE_LOCAL_TAG) > $(IMAGE_ARCHIVE) && \
@@ -546,7 +559,7 @@ temp-publish: $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,temp-publish)
 
 # Save the existing image to a tar archive. Remove any existing
-# archive first, because buildah won't overwrite it.
+# archive first, because podman won't overwrite it.
 $(IMAGE_ARCHIVE): $(IMAGE_DOCKERFILE) $(IMAGE_FILES)
 	$(call _cmd_image,build)
 	$(Q)rm -f -- $(IMAGE_ARCHIVE)
@@ -560,7 +573,7 @@ publish:
 
 endif # ifeq($(_git),)
 
-define _cmd_image_buildah_load =
+define _cmd_image_podman_load =
   podman load < $(IMAGE_ARCHIVE)
 endef
 define _cmd_image_docker_load =
@@ -572,8 +585,8 @@ load:
 	$(call _cmd_image,load)
 
 
-define _cmd_image_buildah_temp-pull =
-  $(_buildah) pull docker://$(IMAGE_LOCAL_TAG)
+define _cmd_image_podman_temp-pull =
+  $(_podman) pull docker://$(IMAGE_LOCAL_TAG)
 endef
 define _cmd_image_docker_temp-pull =
   docker pull $(IMAGE_LOCAL_TAG)
@@ -584,7 +597,7 @@ temp-pull:
 	$(call _cmd_image,temp-pull)
 	$(call _cmd_image,save)
 
-define _cmd_image_buildah_run =
+define _cmd_image_podman_run =
   $(_podman_run) --rm $(IMAGE_RUN_ARGS) $(IMAGE_LOCAL_TAG) $(IMAGE_RUN_CMD)
 endef
 define _cmd_image_docker_run =
@@ -596,7 +609,7 @@ run-image:
 	$(call _cmd_image,run)
 
 IMAGE_TEST_ARGS ?= $(IMAGE_RUN_ARGS)
-define _cmd_image_buildah_test =
+define _cmd_image_podman_test =
   $(if $(IMAGE_TEST_CMD),$(_podman_run) --rm $(IMAGE_TEST_ARGS) $(IMAGE_LOCAL_TAG) $(IMAGE_TEST_CMD),:)
 endef
 define _cmd_image_docker_test =
@@ -608,7 +621,7 @@ test-image:
 	$(call _cmd_image,test)
 
 # Remove loaded image command, for the automated test
-define _cmd_image_buildah_rmi_local =
+define _cmd_image_podman_rmi_local =
   podman rmi $(IMAGE_LOCAL_TAG)
 endef
 define _cmd_image_docker_rmi_local =
@@ -641,15 +654,15 @@ _image_repo = $(patsubst $(_image_repo_registry)/%,$(IMAGE_REGISTRY)/%,$(_image_
 
 ifneq ($(CI),)
 ifeq ($(CI_REGISTRY),$(IMAGE_REGISTRY))
-_registry_login_args = -u gitlab-ci-token -p "$$CI_BUILD_TOKEN"
+_registry_login_user = -u gitlab-ci-token
 endif # ifeq ($(CI_REGISTRY),$(IMAGE_REGISTRY))
 endif # ifneq ($(CI),)
 
-define _cmd_image_buildah_login =
-  podman login $(_registry_login_args) $(IMAGE_REGISTRY)
+define _cmd_image_podman_login =
+  echo "$$CI_BUILD_TOKEN" | podman login $(_registry_login_user) --password-stdin $(IMAGE_REGISTRY)
 endef
 define _cmd_image_docker_login =
-  docker login $(_registry_login_args) $(IMAGE_REGISTRY)
+  echo "$$CI_BUILD_TOKEN" | docker login $(_registry_login_user) --password-stdin $(IMAGE_REGISTRY)
 endef
 _log_cmd_image_login = LOGIN $(IMAGE_REGISTRY)
 
