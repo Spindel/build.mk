@@ -167,6 +167,14 @@ GIT_HEAD_REF_FILE := $(shell if [ -f $(GIT_HEAD_REF_FILE) ]; then \
                                echo $(GIT_TOP_DIR)/$(GIT_HEAD_REF_FILE); \
                              fi)
 
+# Note that we archive the commit tree object HEAD^{tree} rather than
+# the commit object HEAD. The reason for this is to circumvent a
+# problem with podman/buildah which will currently error out if it
+# finds a global extended header when adding a tar archive.
+#
+# The git archive command will generate tar archives with a global
+# extended header containing the commit hash as a comment if the
+# archived object is a commit.
 define _cmd_source_archive =
 $(Q)if ! $(_git_working_copy_clean); then \
   echo >&2 "*** NOTE - These uncommitted changes aren't included in $@: ***"; \
@@ -179,7 +187,7 @@ trap "rm -rf -- \"$$tmpdir\"" EXIT INT TERM && \
   $(_git) archive \
     -o "$(CURDIR)/$@" \
     --prefix="$(_archive_prefix)" \
-    HEAD $(SOURCE_ARCHIVE_PATH) && \
+    HEAD^{tree} $(SOURCE_ARCHIVE_PATH) && \
   $(_git) submodule sync && \
   $(_git) submodule update --init && \
   $(_git) submodule --quiet foreach 'echo $$path' | while read path; do \
@@ -189,7 +197,7 @@ trap "rm -rf -- \"$$tmpdir\"" EXIT INT TERM && \
       $(_git) archive \
 	-o "$$tmpdir/submodule.tar" \
 	--prefix="$(_archive_prefix)$$path/" \
-	HEAD . && \
+	HEAD^{tree} . && \
       tar --concatenate -f "$(CURDIR)/$@" "$$tmpdir/submodule.tar"); \
     fi \
   done) && \
