@@ -713,7 +713,9 @@ ifneq ($(FEDORA_ROOT_ARCHIVE),)
 
 CLEANUP_FILES += $(FEDORA_ROOT_ARCHIVE)
 
-FEDORA_ROOT_RELEASE ?= 31
+ifeq ($(FEDORA_ROOT_RELEASE),)
+  $(error You must set FEDORA_ROOT_RELEASE to build a Fedora root file system)
+endif
 
 define _cmd_fedora_root =
 $(Q)set -u && \
