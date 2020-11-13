@@ -409,6 +409,14 @@ IMAGE_TAG = $(_image_repo):$(_image_tag_prefix)$(IMAGE_TAG_SUFFIX)
 
 _podman = podman
 
+
+ifdef IMAGE_BUILD_FROM
+_image_build_from_arg = --build-arg=IMAGE_BUILD_FROM="$(IMAGE_BUILD_FROM)"
+else
+_image_build_from_arg =
+endif
+
+
 ifdef IMAGE_BUILD_VOLUME
 _build_volume = --volume $(IMAGE_BUILD_VOLUME):/build:ro,z
 else
@@ -450,6 +458,7 @@ define _cmd_image_podman_build =
     --build-arg=URL="$(CI_PROJECT_URL)" \
     --build-arg=DATE="$(_date)" \
     --build-arg=HOST="$(_host)" \
+    $(_image_build_from_arg) \
     --tag=$(IMAGE_LOCAL_TAG) \
     .
 endef
@@ -462,6 +471,7 @@ define _cmd_image_docker_build =
     --build-arg=URL="$(CI_PROJECT_URL)" \
     --build-arg=DATE="$(_date)" \
     --build-arg=HOST="$(_host)" \
+    $(_image_build_from_arg) \
     --tag=$(IMAGE_LOCAL_TAG) \
     .
 endef
@@ -713,7 +723,9 @@ ifneq ($(FEDORA_ROOT_ARCHIVE),)
 
 CLEANUP_FILES += $(FEDORA_ROOT_ARCHIVE)
 
-FEDORA_ROOT_RELEASE ?= 31
+ifeq ($(FEDORA_ROOT_RELEASE),)
+  $(error You must set FEDORA_ROOT_RELEASE to build a Fedora root file system)
+endif
 
 define _cmd_fedora_root =
 $(Q)set -u && \
