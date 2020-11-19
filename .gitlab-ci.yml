@@ -1,4 +1,8 @@
-image: registry.gitlab.com/modioab/base-image/fedora-31/build:master
+%YAML 1.1
+---
+default:
+    image: registry.gitlab.com/modioab/base-image/fedora-31/build:master
+
 stages:
     - test
     - again
@@ -27,3 +31,4 @@ test:container:
     before_script: []
     script:
         - /usr/bin/python3 /container-script.py
+...
