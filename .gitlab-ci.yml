@@ -2,10 +2,17 @@
 ---
 default:
     image: registry.gitlab.com/modioab/base-image/fedora-31/build:master
+    tags:
+        - x86_64
 
 stages:
     - test
     - again
+
+
+variables:
+    FEDORA_ROOT_RELEASE: 31
+
 
 before_script:
     - uname -a
@@ -16,8 +23,6 @@ before_script:
 
 test:
     stage: test
-    tags:
-        - x86_64
     script:
         - make -C test test test-publish
         - make -C test temp-publish
@@ -25,8 +30,6 @@ test:
 
 test:container:
     stage: again
-    tags:
-        - x86_64
     image: registry.gitlab.com/modioab/build.mk/test-container:${CI_PIPELINE_ID}
     before_script: []
     script:
