@@ -29,6 +29,7 @@ COMPILED_ARCHIVE = compiled.tar
 compiled_file = COMPILED
 COMPILE_COMMAND = touch $(compiled_file)
 
+IMAGE_BUILD_FROM = registry.gitlab.com/modioab/base-image/fedora-$(FEDORA_ROOT_RELEASE)/python:master
 IMAGE_ARCHIVE = image.tar
 repo_path = modioab/build.mk/test-container
 IMAGE_REPO = registry.gitlab.com/$(repo_path)
