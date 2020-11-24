@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 default:
-    image: registry.gitlab.com/modioab/base-image/fedora-31/build:master
+    image: registry.gitlab.com/modioab/base-image/fedora-${FEDORA_ROOT_RELEASE}/build:master
     tags:
         - x86_64
 
@@ -11,7 +11,7 @@ stages:
 
 
 variables:
-    FEDORA_ROOT_RELEASE: 31
+    FEDORA_ROOT_RELEASE: 33
 
 
 before_script:
