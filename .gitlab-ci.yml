@@ -12,7 +12,7 @@ stages:
 
 variables:
     FEDORA_ROOT_RELEASE: 33
-
+    PODMAN_PULL: "--pull=false"
 
 before_script:
     - uname -a
