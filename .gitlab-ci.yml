@@ -1,9 +1,12 @@
 %YAML 1.1
 ---
-default:
-    image: registry.gitlab.com/modioab/base-image/fedora-${FEDORA_ROOT_RELEASE}/build:master
-    tags:
-        - x86_64
+# Keep the includes first to illustrate that definitions that everything that
+# follows override included definitions.
+include:
+    - project: ModioAB/CI
+      ref: main
+      file:
+          - /ci/default.yml
 
 stages:
     - test
@@ -11,8 +14,8 @@ stages:
 
 
 variables:
-    FEDORA_ROOT_RELEASE: 33
     PODMAN_PULL: "--pull=false"
+
 
 before_script:
     - uname -a
@@ -20,6 +23,7 @@ before_script:
     # PODMAN_RUNTIME falls back to BUILDAH_RUNTIME only if unset
     - ": ${PODMAN_RUNTIME=$BUILDAH_RUNTIME}"
     - podman ${PODMAN_RUNTIME:+--runtime} ${PODMAN_RUNTIME} info
+
 
 test:
     stage: test
