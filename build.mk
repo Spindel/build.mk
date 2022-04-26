@@ -411,9 +411,7 @@ _podman = podman
 
 
 ifdef IMAGE_BUILD_FROM
-_image_build_from_arg = --build-arg=IMAGE_BUILD_FROM="$(IMAGE_BUILD_FROM)"
-else
-_image_build_from_arg =
+IMAGE_BUILD_ARGS += IMAGE_BUILD_FROM="$(IMAGE_BUILD_FROM)"
 endif
 
 
@@ -449,6 +447,13 @@ $(error You should use PODMAN_PULL instead of BUILDAH_PULL)
 endif
 
 
+ifdef IMAGE_BUILD_ARGS
+_image_build_extra_args = $(foreach arg,$(IMAGE_BUILD_ARGS),--build-arg=$(arg))
+else
+_image_build_extra_args =
+endif
+
+
 define _cmd_image_podman_build =
   $(_podman) build $(_podman_pull_args) \
     $(_build_volume) \
@@ -458,7 +463,7 @@ define _cmd_image_podman_build =
     --build-arg=URL="$(CI_PROJECT_URL)" \
     --build-arg=DATE="$(_date)" \
     --build-arg=HOST="$(_host)" \
-    $(_image_build_from_arg) \
+    $(_image_build_extra_args) \
     --tag=$(IMAGE_LOCAL_TAG) \
     .
 endef
