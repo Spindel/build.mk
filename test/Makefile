@@ -62,6 +62,7 @@ test:
 	$(MAKE) test-image-should-be-republishable; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-image-should-be-re-loadable; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-build-volume-works; $(RECORD_TEST_STATUS) \
+	$(MAKE) test-build-args-works; $(RECORD_TEST_STATUS) \
 	$(MAKE) clean; \
 	$(RETURN_TEST_STATUS)
 
@@ -207,6 +208,16 @@ test-build-volume-works:
 	@echo $@
 	$(Q)$(MAKE) clean && \
 	$(MAKE) IMAGE_BUILD_VOLUME=$(shell pwd) IMAGE_DOCKERFILE=Dockerfile.volume $(IMAGE_ARCHIVE) && \
+	$(MAKE) load
+	$(MAKE) run-image
+	$(MAKE) remove-local-image
+
+
+.PHONY: test-build-args-works
+test-build-args-works:
+	@echo $@
+	$(Q)$(MAKE) clean && \
+	$(MAKE) IMAGE_BUILD_ARGS="--build-arg=FLUMMOXED=scratch" IMAGE_DOCKERFILE=Dockerfile.args $(IMAGE_ARCHIVE) && \
 	$(MAKE) load
 	$(MAKE) run-image
 	$(MAKE) remove-local-image
