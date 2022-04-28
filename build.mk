@@ -427,7 +427,8 @@ endif
 
 
 ifdef IMAGE_BUILD_FROM
-_image_build_args += --build-arg=IMAGE_BUILD_FROM="$(IMAGE_BUILD_FROM)"
+export IMAGE_BUILD_FROM
+_image_build_args += --build-arg=IMAGE_BUILD_FROM
 endif
 
 
