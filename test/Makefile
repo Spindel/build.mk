@@ -210,3 +210,13 @@ test-build-volume-works:
 	$(MAKE) load
 	$(MAKE) run-image
 	$(MAKE) remove-local-image
+
+
+.PHONY: test-build-args-works
+test-build-args-works:
+	@echo $@
+	$(Q)$(MAKE) clean && \
+	$(MAKE) IMAGE_BUILD_ARGS="FLUMMOXED=scratch" IMAGE_DOCKERFILE=Dockerfile.args $(IMAGE_ARCHIVE) && \
+	$(MAKE) load
+	$(MAKE) run-image
+	$(MAKE) remove-local-image
