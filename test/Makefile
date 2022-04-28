@@ -62,6 +62,7 @@ test:
 	$(MAKE) test-image-should-be-republishable; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-image-should-be-re-loadable; $(RECORD_TEST_STATUS) \
 	$(MAKE) test-build-volume-works; $(RECORD_TEST_STATUS) \
+	$(MAKE) test-build-args-works; $(RECORD_TEST_STATUS) \
 	$(MAKE) clean; \
 	$(RETURN_TEST_STATUS)
 
