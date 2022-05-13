@@ -464,13 +464,6 @@ $(error You should use PODMAN_PULL instead of BUILDAH_PULL)
 endif
 
 
-ifdef IMAGE_BUILD_ARGS
-_image_build_extra_args = $(foreach arg,$(IMAGE_BUILD_ARGS),--build-arg=$(arg))
-else
-_image_build_extra_args =
-endif
-
-
 define _cmd_image_podman_build =
   $(_podman) build $(_podman_pull_args) \
     $(_build_volume) \
