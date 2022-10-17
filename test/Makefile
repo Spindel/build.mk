@@ -29,6 +29,9 @@ COMPILED_ARCHIVE = compiled.tar
 compiled_file = COMPILED
 COMPILE_COMMAND = touch $(compiled_file)
 
+ifeq ($(FEDORA_ROOT_RELEASE),)
+  $(error You must set FEDORA_ROOT_RELEASE to reference a base-image)
+endif
 IMAGE_BUILD_FROM = registry.gitlab.com/modioab/base-image/fedora-$(FEDORA_ROOT_RELEASE)/python:latest
 IMAGE_ARCHIVE = image.tar
 
@@ -122,10 +125,10 @@ echo_repo:
 	@echo "$(_image_repo)"
 test-registry-should-be-correctly-set:
 	@echo $@
-	$(Q)[ "$$($(MAKE) echo_registry CI_REGISTRY=)" == registry.gitlab.com ]
+	$(Q)[ "$$($(MAKE) echo_registry CI_REGISTRY=)" == $(repo_registry) ]
 	$(Q)[ "$$($(MAKE) echo_registry CI_REGISTRY=foo)" == foo ]
 	$(Q)[ "$$($(MAKE) echo_registry CI_REGISTRY=foo IMAGE_REGISTRY=bar)" == bar ]
-	$(Q)[ "$$($(MAKE) echo_repo CI_REGISTRY=)" == registry.gitlab.com/$(repo_path) ]
+	$(Q)[ "$$($(MAKE) echo_repo CI_REGISTRY=)" == $(repo_registry)/$(repo_path) ]
 	$(Q)[ "$$($(MAKE) echo_repo CI_REGISTRY=foo)" == foo/$(repo_path) ]
 	$(Q)[ "$$($(MAKE) echo_repo CI_REGISTRY=foo IMAGE_REGISTRY=bar)" == bar/$(repo_path) ]
 	$(Q)[ "$$($(MAKE) echo_repo CI_REGISTRY= IMAGE_REPO=/$(repo_path))" == localhost/$(repo_path) ]
