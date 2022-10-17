@@ -3,7 +3,7 @@
 # Keep the includes first to illustrate that definitions that everything that
 # follows override included definitions.
 include:
-    - project: ModioAB/CI
+    - project: ${CI_PROJECT_NAMESPACE}/CI
       ref: main
       file:
           - /ci/default.yml
