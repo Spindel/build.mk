@@ -47,6 +47,17 @@ repo_path = $(subst $(repo_registry)/,,$(IMAGE_REPO))
 
 include ../build.mk
 
+ifneq ($(CI),)
+_section_begin = printf '\e[0Ksection_start:'`date +%s`':%s\r\e[0K'
+_section_end = printf '\e[0Ksection_end:'`date +%s`':%s\r\e[0K\n'
+else
+_section_begin = :
+_section_end = :
+endif
+
+define _run_test =
+$(_section_begin) $(1); $(MAKE) $(1); $(RECORD_TEST_STATUS) $(_section_end) $(1)
+endef
 
 ### Tests
 
@@ -58,20 +69,20 @@ MAKE += --no-print-directory
 test:
 	@echo Running test cases
 	$(Q)$(MAKE) clean; \
-	$(MAKE) test-clean-should-remove-cleanup-file; $(RECORD_TEST_STATUS) \
-	$(MAKE) test-source-archive-should-contain-source-file; $(RECORD_TEST_STATUS) \
-	$(MAKE) test-source-archive-should-be-limited-to-source-archive-path; $(RECORD_TEST_STATUS) \
-	$(MAKE) test-compiled-archive-should-contain-compiled-file; $(RECORD_TEST_STATUS) \
-	$(MAKE) test-registry-should-be-correctly-set; $(RECORD_TEST_STATUS) \
-	$(MAKE) test-image-should-be-runnable; $(RECORD_TEST_STATUS) \
-	$(MAKE) test-image-without-test-should-be-testable; $(RECORD_TEST_STATUS) \
-	$(MAKE) test-image-with-working-test-should-succeed; $(RECORD_TEST_STATUS) \
-	$(MAKE) test-image-with-failing-test-should-fail; $(RECORD_TEST_STATUS) \
-	$(MAKE)	test-image-no-pull-should-fail-properly; $(RECORD_TEST_STATUS) \
-	$(MAKE) test-image-should-be-republishable; $(RECORD_TEST_STATUS) \
-	$(MAKE) test-image-should-be-re-loadable; $(RECORD_TEST_STATUS) \
-	$(MAKE) test-build-volume-works; $(RECORD_TEST_STATUS) \
-	$(MAKE) test-build-args-works; $(RECORD_TEST_STATUS) \
+	$(call _run_test,test-clean-should-remove-cleanup-file); \
+	$(call _run_test,test-source-archive-should-contain-source-file); \
+	$(call _run_test,test-source-archive-should-be-limited-to-source-archive-path); \
+	$(call _run_test,test-compiled-archive-should-contain-compiled-file); \
+	$(call _run_test,test-registry-should-be-correctly-set); \
+	$(call _run_test,test-image-should-be-runnable); \
+	$(call _run_test,test-image-without-test-should-be-testable); \
+	$(call _run_test,test-image-with-working-test-should-succeed); \
+	$(call _run_test,test-image-with-failing-test-should-fail); \
+	$(call _run_test,test-image-no-pull-should-fail-properly); \
+	$(call _run_test,test-image-should-be-republishable); \
+	$(call _run_test,test-image-should-be-re-loadable); \
+	$(call _run_test,test-build-volume-works); \
+	$(call _run_test,test-build-args-works); \
 	$(MAKE) clean; \
 	$(RETURN_TEST_STATUS)
 
@@ -80,7 +91,7 @@ test:
 test-publish:
 	@echo Running test cases
 	$(Q)$(MAKE) clean; \
-	$(MAKE) test-image-should-be-publishable; $(RECORD_TEST_STATUS) \
+	$(call _run_test,test-image-should-be-publishable); \
 	$(RETURN_TEST_STATUS)
 
 
