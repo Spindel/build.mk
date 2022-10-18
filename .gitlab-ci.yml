@@ -3,7 +3,7 @@
 # Keep the includes first to illustrate that definitions that everything that
 # follows override included definitions.
 include:
-    - project: ModioAB/CI
+    - project: ${CI_PROJECT_NAMESPACE}/CI
       ref: main
       file:
           - /ci/default.yml
@@ -15,6 +15,7 @@ stages:
 
 variables:
     PODMAN_PULL: "--pull=false"
+    GIT_DEPTH: ''
 
 
 before_script:
@@ -34,7 +35,7 @@ test:
 
 test:container:
     stage: again
-    image: registry.gitlab.com/modioab/build.mk/test-container:${CI_PIPELINE_ID}
+    image: ${CI_REGISTRY_IMAGE}/test-container:${CI_PIPELINE_ID}
     before_script: []
     script:
         - /usr/bin/python3 /container-script.py
